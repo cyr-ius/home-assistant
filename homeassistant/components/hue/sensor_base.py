@@ -48,7 +48,7 @@ class SensorManager:
     Intended to be a singleton.
     """
 
-    SCAN_INTERVAL = timedelta(seconds=0.1)
+    SCAN_INTERVAL = timedelta(seconds=5)
     sensor_config_map = {}
 
     def __init__(self, hass, bridge):
@@ -58,7 +58,6 @@ class SensorManager:
         from .sensor import (
             HueLightLevel, HueTemperature, LIGHT_LEVEL_NAME_FORMAT,
             TEMPERATURE_NAME_FORMAT)
-        from .switch import HueTemperature, BUTTON_EVENT_NAME_FORMAT
 
         self.hass = hass
         self.bridge = bridge
@@ -80,16 +79,6 @@ class SensorManager:
                 "binary": True,
                 "name_format": PRESENCE_NAME_FORMAT,
                 "class": HuePresence,
-            },
-            aiohue.sensors.TYPE_ZLL_SWITCH: {
-                "binary": False,
-                "name_format": BUTTON_EVENT_NAME_FORMAT,
-                "class": HueSwitch,
-            },
-            aiohue.sensors.TYPE_ZGP_SWITCH: {
-                "binary": False,
-                "name_format": BUTTON_EVENT_NAME_FORMAT,
-                "class": HueSwitch,
             },
         })
 
@@ -290,12 +279,6 @@ class GenericZLLSensor(GenericHueSensor):
     @property
     def device_state_attributes(self):
         """Return the device state attributes."""
-        attributes = dict()
-        attributes.update(self.sensor.config)
-        """ Removing unnecessary values."""
-        if 'pending' in attributes: del attributes['pending']
-        if 'reachable' in attributes: del attributes['reachable']
-        if 'alert' in attributes: del attributes['alert']
-        if 'ledindication' in attributes: del attributes['ledindication']
-        if 'usertest' in attributes: del attributes['usertest']
-        return attributes
+        return {
+            "battery_level": self.sensor.battery
+        }

@@ -8,13 +8,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_DEVICES, CONF_UNIT_OF_MEASUREMENT, CONF_ZONE
 import homeassistant.helpers.config_validation as cv
 
-from .const import (
-    CONF_IGNORED_ZONES,
-    CONF_TOLERANCE,
-    DEFAULT_PROXIMITY_ZONE,
-    DEFAULT_TOLERANCE,
-    UNITS,
-)
+from .const import CONF_IGNORED_ZONES, CONF_TOLERANCE, DEFAULT_TOLERANCE, UNITS
 from .const import DOMAIN  # pylint: disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,16 +29,19 @@ class ProximityConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         entities_reg = await self.hass.helpers.entity_registry.async_get_registry()
         entities = list(entities_reg.entities.keys())
-        zones_list = [
-            entity.original_name
-            for entity in entities_reg.entities.values()
-            if entity.domain == "zone"
-        ]
-        zones = ["home"] + zones_list
+
+        zones = []
+        for zones_list in self.hass.helpers.entity_platform.async_get_platforms(
+            self.hass, "zone"
+        ):
+            for zone in zones_list.entities.values():
+                if zone.entity_id == "zone.home":
+                    default_proximity_zone = zone.name
+                zones.append(zone.name)
 
         data_schema = vol.Schema(
             {
-                vol.Optional(CONF_ZONE, default=[DEFAULT_PROXIMITY_ZONE]): vol.All(
+                vol.Optional(CONF_ZONE, default=[default_proximity_zone]): vol.All(
                     cv.string, vol.In(zones)
                 ),
                 vol.Required(CONF_DEVICES): cv.multi_select(entities),

@@ -322,6 +322,7 @@ FLOWS = [
     "wallbox",
     "watttime",
     "waze_travel_time",
+    "webostv",
     "wemo",
     "whirlpool",
     "wiffi",

@@ -587,7 +587,7 @@ homeassistant/components/waqi/* @andrey-git
 homeassistant/components/watson_tts/* @rutkai
 homeassistant/components/watttime/* @bachya
 homeassistant/components/weather/* @fabaff
-homeassistant/components/webostv/* @bendavid @thecode
+homeassistant/components/webostv/* @bendavid @thecode @cyr-ius
 homeassistant/components/websocket_api/* @home-assistant/core
 homeassistant/components/wemo/* @esev
 homeassistant/components/whirlpool/* @abmantis

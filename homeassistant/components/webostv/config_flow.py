@@ -1,12 +1,10 @@
 """Config flow to configure webostv component."""
 import logging
-from urllib.parse import urlparse
 
 from aiopylgtv import PyLGTVPairException
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components import ssdp
 from homeassistant.const import CONF_CLIENT_SECRET, CONF_HOST, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
@@ -105,16 +103,6 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return await self.async_step_user()
 
-    async def async_step_ssdp(self, discovery_info):
-        """Handle a discovered Webostv device."""
-        user_input = {
-            CONF_HOST: urlparse(discovery_info[ssdp.ATTR_SSDP_LOCATION]).hostname,
-            CONF_NAME: discovery_info[ssdp.ATTR_UPNP_FRIENDLY_NAME],
-        }
-        self.context["title_placeholders"] = {"name": user_input[CONF_NAME]}
-        self._force_pairing = True
-        return await self.async_step_user(user_input)
-
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options."""
@@ -180,16 +168,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
 async def async_default_sources(hass, host, key) -> list:
     """Construct sources list."""
-    sources = []
+    sources_list = []
     try:
         client = await async_control_connect(hass, host, key)
+        apps = [app["title"] for app in client.apps.values()]
+        sources = [source["label"] for source in client.inputs.values()]
+        sources_list = apps + sources
     except CannotConnect as error:
         _LOGGER.warning("Unable to retrieve.Device must be switched off (%s)", error)
-        return None
-
-    for app in client.apps.values():
-        sources.append(app["title"])
-    for source in client.inputs.values():
-        sources.append(source["label"])
-
-    return sources
+    return sources_list

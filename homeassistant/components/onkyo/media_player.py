@@ -63,9 +63,9 @@ def _tuple_get(tup, index, default=None):
     return (tup[index : index + 1] or [default])[0]
 
 
-def determine_zones(receiver) -> list:
+def determine_zones(receiver) -> dict[str, bool]:
     """Determine what zones are available for the receiver."""
-    out = []
+    out = {"zone2": False, "zone3": False}
     try:
         _LOGGER.debug("Checking for zone 2 capability")
         response = receiver.raw("ZPWQSTN")

@@ -1,4 +1,6 @@
 """The onkyo constants."""
+from typing import List
+
 from homeassistant.components.media_player.const import (
     SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA,
@@ -45,20 +47,7 @@ SUPPORT_ONKYO_WO_VOLUME = (
     | SUPPORT_PLAY
     | SUPPORT_PLAY_MEDIA
 )
-DEFAULT_SOURCES_SELECTED = [
-    "tv",
-    "bd",
-    "game",
-    "aux1",
-    "video1",
-    "video2",
-    "video3",
-    "video4",
-    "video5",
-    "video6",
-    "video7",
-    "fm",
-]
+DEFAULT_SOURCES_SELECTED: List[str] = []
 ACCEPTED_VALUES = [
     "no",
     "analog",

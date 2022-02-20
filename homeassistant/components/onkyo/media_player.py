@@ -8,8 +8,9 @@ import voluptuous as vol
 from homeassistant.components.media_player import MediaPlayerEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME, STATE_OFF, STATE_ON
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     ACCEPTED_VALUES,
@@ -97,7 +98,7 @@ def determine_zones(receiver) -> dict[str, bool]:
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
-    async_add_entities,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Onkyo entry."""
     entities = []
@@ -130,10 +131,10 @@ async def async_setup_entry(
             )
         )
 
-    async def async_service_handler(service):
+    async def async_service_handler(service: ServiceCall) -> None:
         """Handle for services."""
         entity_ids = service.data.get(ATTR_ENTITY_ID)
-        devices = [d for d in entities if d.entity_id in entity_ids]
+        devices = [device for device in entities if device.entity_id in entity_ids]
         for device in devices:
             if service.service == SERVICE_SELECT_HDMI_OUTPUT:
                 device.select_output(service.data.get(ATTR_HDMI_OUTPUT))

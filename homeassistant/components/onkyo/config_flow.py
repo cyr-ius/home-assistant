@@ -100,9 +100,13 @@ class OnkyoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_ssdp(self, discovery_info):
         """Handle a discovered device."""
+        hostname = urlparse(discovery_info.ssdp_location).hostname
+        friendly_name = discovery_info.upnp[ssdp.ATTR_UPNP_FRIENDLY_NAME]
+
+        self._async_abort_entries_match({CONF_HOST: hostname})
         user_input = {
-            CONF_HOST: urlparse(discovery_info[ssdp.ATTR_SSDP_LOCATION]).hostname,
-            CONF_NAME: discovery_info["friendlyName"],
+            CONF_HOST: hostname,
+            CONF_NAME: friendly_name,
         }
         return await self.async_step_user(user_input)
 

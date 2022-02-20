@@ -191,6 +191,12 @@ SSDP = {
             "manufacturer": "The OctoPrint Project"
         }
     ],
+    "onkyo": [
+        {
+            "deviceType": "urn:schemas-upnp-org:device:MediaRenderer:2",
+            "manufacturer": "Onkyo & Pioneer Corporation"
+        }
+    ],
     "roku": [
         {
             "deviceType": "urn:roku-com:device:player:1-0",

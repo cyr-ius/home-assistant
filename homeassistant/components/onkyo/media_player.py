@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import List
 
 import voluptuous as vol
 
@@ -64,25 +65,26 @@ def _tuple_get(tup, index, default=None):
     return (tup[index : index + 1] or [default])[0]
 
 
-def determine_zones(receiver) -> dict[str, bool]:
+def determine_zones(receiver) -> List[str]:
     """Determine what zones are available for the receiver."""
-    out = {"zone2": False, "zone3": False}
+    out = []
     try:
         _LOGGER.debug("Checking for zone 2 capability")
         response = receiver.raw("ZPWQSTN")
         if response != "ZPWN/A":  # Zone 2 Available
-            out["zone2"] = True
+            out.append("zone2")
         else:
             _LOGGER.debug("Zone 2 not available")
     except ValueError as error:
         if str(error) != TIMEOUT_MESSAGE:
             raise error
         _LOGGER.debug("Zone 2 timed out, assuming no functionality")
+
     try:
         _LOGGER.debug("Checking for zone 3 capability")
         response = receiver.raw("PW3QSTN")
         if response != "PW3N/A":
-            out["zone3"] = True
+            out.append("zone3")
         else:
             _LOGGER.debug("Zone 3 not available")
     except ValueError as error:
@@ -134,9 +136,11 @@ async def async_setup_entry(
     async def async_service_handler(service: ServiceCall) -> None:
         """Handle for services."""
         entity_ids = service.data.get(ATTR_ENTITY_ID)
-        devices = [device for device in entities if device.entity_id in entity_ids]
-        for device in devices:
-            if service.service == SERVICE_SELECT_HDMI_OUTPUT:
+        for device in entities:
+            if (
+                device.entity_id in entity_ids
+                and service.service == SERVICE_SELECT_HDMI_OUTPUT
+            ):
                 device.select_output(service.data.get(ATTR_HDMI_OUTPUT))
 
     hass.services.async_register(
@@ -189,7 +193,11 @@ class OnkyoDevice(MediaPlayerEntity):
                 self._receiver.command_socket = None
                 _LOGGER.debug("Resetting connection to %s", self._name)
             else:
-                _LOGGER.info("%s is disconnected. Attempting to reconnect", self._name)
+                _LOGGER.info(
+                    "%s is disconnected. Attempting to reconnect (%s)",
+                    self._name,
+                    command,
+                )
             return False
         _LOGGER.debug("Result for %s: %s", command, result)
         return result
@@ -475,7 +483,7 @@ class OnkyoDeviceZone(OnkyoDevice):
     @property
     def name(self):
         """Return the name of the device."""
-        return f"{self._name} Zone {self._zone}"
+        return f"{self._name} {self._zone}"
 
     @property
     def unique_id(self) -> str:

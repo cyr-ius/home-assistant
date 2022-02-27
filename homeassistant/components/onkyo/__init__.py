@@ -6,19 +6,13 @@ from eiscp.commands import COMMANDS
 
 from homeassistant import config_entries
 from homeassistant.components.media_player.const import DOMAIN as media_domain
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_per_platform
 
-from .const import (
-    CONF_MAX_VOLUME,
-    CONF_RECEIVER_MAX_VOLUME,
-    CONF_SOURCES,
-    DEFAULT_RECEIVER_MAX_VOLUME,
-    DOMAIN,
-    PLATFORMS,
-    SUPPORTED_MAX_VOLUME,
-)
+from .const import DOMAIN, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,25 +38,8 @@ async def async_setup(hass, config):
     return True
 
 
-async def async_setup_entry(hass, config_entry):
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set the config entry up."""
-    if not config_entry.options:
-        sources = config_entry.data.get(CONF_SOURCES, [])
-        if isinstance(sources, list):
-            sources = list2dict(sources)
-        hass.config_entries.async_update_entry(
-            config_entry,
-            options={
-                CONF_SOURCES: sources,
-                CONF_MAX_VOLUME: config_entry.data.get(
-                    CONF_MAX_VOLUME, SUPPORTED_MAX_VOLUME
-                ),
-                CONF_RECEIVER_MAX_VOLUME: config_entry.data.get(
-                    CONF_RECEIVER_MAX_VOLUME, DEFAULT_RECEIVER_MAX_VOLUME
-                ),
-            },
-        )
-
     try:
         receiver = onkyo_rcv(config_entry.data[CONF_HOST])
     except CannotConnect as error:
@@ -97,7 +74,7 @@ async def async_unload_entry(hass, config_entry):
     return unload_ok
 
 
-def default_sources() -> dict:
+def _build_sources_list() -> dict:
     """Retrieve default sources."""
     sources_list = {}
     for value in COMMANDS["main"]["SLI"]["values"].values():
@@ -111,9 +88,35 @@ def default_sources() -> dict:
     return sources_list
 
 
-def list2dict(sources: list) -> dict:
-    """Reduce selected sources in default sources."""
-    return {key: value for key, value in default_sources().items() if key in sources}
+def _build_sounds_mode_list() -> dict:
+    """Retrieve sound mode list."""
+    sounds_list = []
+    for value in COMMANDS["main"]["LMD"]["values"].values():
+        name = value["name"]
+        if isinstance(name, tuple):
+            name = name[-1]
+        if name in ["up", "down", "query"]:
+            continue
+        sounds_list.append(name)
+    sounds_list = list(set(sounds_list))
+    sounds_list.sort()
+    sounds_mode = {name: name.replace("-", " ").title() for name in sounds_list}
+    return sounds_mode
+
+
+def build_selected_dict(
+    sources: list = None, sounds: list = None, reverse: bool = False
+) -> dict[str, str]:
+    """Return selected dictionary."""
+    _dict = {}
+    if sources:
+        _dict = {k: v for k, v in _build_sources_list().items() if (k in sources)}
+    if sounds:
+        _dict = {k: v for k, v in _build_sounds_mode_list().items() if (k in sounds)}
+
+    if reverse:
+        return {v: k for k, v in _dict.items()}
+    return _dict
 
 
 class CannotConnect(HomeAssistantError):

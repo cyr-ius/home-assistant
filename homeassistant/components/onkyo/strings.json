@@ -10,7 +10,8 @@
           "name": "Name",
           "max_volume": "Maximum volume",
           "receiver_max_volume": "Maximum volume receiver",
-          "sources": "Sources"
+          "sources": "Sources",
+          "sounds_mode": "Sounds mode"
         }
       }
     },
@@ -26,10 +27,11 @@
         "data": {
           "max_volume": "Max volume",
           "receiver_max_volume": "Receiver Max volume",
-          "sources": "Sources"
+          "sources": "Sources",
+          "sounds_mode": "Sounds mode"
         }
       },
-      "customize": {
+      "custom_sources": {
         "title": "Sources naming",
         "description": "Rename sources to friendly name."
       }

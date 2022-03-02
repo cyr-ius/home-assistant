@@ -104,19 +104,18 @@ def _build_sounds_mode_list() -> dict:
     return sounds_mode
 
 
-def build_selected_dict(
-    sources: list = None, sounds: list = None, reverse: bool = False
-) -> dict[str, str]:
+def build_selected_dict(sources: list = None, sounds: list = None) -> dict[str, str]:
     """Return selected dictionary."""
-    _dict = {}
     if sources:
-        _dict = {k: v for k, v in _build_sources_list().items() if (k in sources)}
+        return {k: v for k, v in _build_sources_list().items() if (k in sources)}
     if sounds:
-        _dict = {k: v for k, v in _build_sounds_mode_list().items() if (k in sounds)}
+        return {k: v for k, v in _build_sounds_mode_list().items() if (k in sounds)}
+    return {}
 
-    if reverse:
-        return {v: k for k, v in _dict.items()}
-    return _dict
+
+def reverse_mapping(ssdict) -> dict[str, str]:
+    """Reverse dictionary."""
+    return {v: k for k, v in ssdict.items()}
 
 
 class CannotConnect(HomeAssistantError):

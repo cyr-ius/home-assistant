@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import build_selected_dict
+from . import reverse_mapping
 from .const import (
     ACCEPTED_VALUES,
     ATTR_AUDIO_INFORMATION,
@@ -175,21 +175,18 @@ class OnkyoDevice(MediaPlayerEntity):
         self._max_volume = max_volume
         self._receiver_max_volume = receiver_max_volume
         self._current_source = None
-
+        self._sound_mode = None
         self._sources = sources
         self._sources_list = list(sources.values())
-        self._reverse_sources = build_selected_dict(sources=sources, reverse=True)
-
+        self._reverse_sources = reverse_mapping(self._sources)
         self._sounds = sounds
         self._sounds_list = list(sounds.values())
-        self._reverse_sounds = build_selected_dict(sounds=sounds, reverse=True)
-
+        self._reverse_sounds = reverse_mapping(self._sounds)
         self._attributes = {}
         self._hdmi_out_supported = True
         self._unique_id = unique_id
         self._audio_info_supported = True
         self._video_info_supported = True
-        self._sound_mode = None
 
     def command(self, command):
         """Run an eiscp command and catch connection errors."""

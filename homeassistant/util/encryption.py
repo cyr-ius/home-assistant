@@ -64,7 +64,6 @@ def async_enable_encryption(
             try:
                 current_entry = component.config_flow.config_entries.current_entry.get()
                 data = current_entry.data
-                options = current_entry.options
                 if current_entry.encrypt_fields is None:
                     return decrypt_fields
             except Exception as error:
@@ -73,10 +72,6 @@ def async_enable_encryption(
             try:
                 for field in current_entry.encrypt_fields:
                     if value := data.get(field):
-                        decrypt_fields.update(
-                            {field: fernet.decrypt(value.encode()).decode()}
-                        )
-                    if value := options.get(field):
                         decrypt_fields.update(
                             {field: fernet.decrypt(value.encode()).decode()}
                         )

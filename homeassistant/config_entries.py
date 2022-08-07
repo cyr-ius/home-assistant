@@ -775,13 +775,15 @@ class ConfigEntriesFlowManager(data_entry_flow.FlowManager):
             await self.config_entries.async_unload(existing_entry.entry_id)
 
         # Field encryption and replacement with encrypted values
-        try:
-            if self.hass.encryption_enabled:
-                result["data"] = await self.hass.async_encrypt_fields(  # type: ignore[attr-defined]
+        if self.hass.encryption_enabled:
+            try:
+                encrypt_data = await self.hass.async_encrypt_fields(  # type: ignore[attr-defined]
                     result["data"], result["encrypt_fields"]
                 )
-        except VaultException:
-            _LOGGER.warning("No passphrase detected, please add environment variable")
+            except VaultException as error:
+                _LOGGER.error(error)
+            else:
+                result["data"] = encrypt_data
 
         entry = ConfigEntry(
             version=result["version"],

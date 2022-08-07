@@ -360,22 +360,21 @@ class ConfigEntry:
         error_reason = None
 
         try:
-            if len(decrypt_fields := await hass.async_reveal_fields(component)) > 0:  # type: ignore[attr-defined]
+            if hass.encryption_enabled:
                 try:
+                    decrypt_fields = await hass.async_reveal_fields(component)  # type: ignore[attr-defined]
+                except VaultException as error:
+                    _LOGGER.error(error)
+                    result = False
+                else:
                     result = await component.async_setup_entry(
                         hass, self, decrypt_fields
                     )
-                except TypeError:
-                    _LOGGER.error(
-                        "[%s]]Add decrypt_field argument at async_setup_entry(hass,entry, decrypt_field)",
-                        integration.domain,
-                    )
-                    result = False
             else:
                 result = await component.async_setup_entry(hass, self)
 
             if not isinstance(result, bool):
-                _LOGGER.error(
+                _LOGGER.error(  # type: ignore[unreachable]
                     "%s.async_setup_entry did not return boolean", integration.domain
                 )
                 result = False
@@ -777,9 +776,7 @@ class ConfigEntriesFlowManager(data_entry_flow.FlowManager):
 
         # Field encryption and replacement with encrypted values
         try:
-            if len(result["encrypt_fields"]) > 0 and hasattr(
-                self.hass, "async_encrypt_fields"
-            ):
+            if self.hass.encryption_enabled:
                 result["data"] = await self.hass.async_encrypt_fields(  # type: ignore[attr-defined]
                     result["data"], result["encrypt_fields"]
                 )

@@ -88,6 +88,7 @@ def async_enable_encryption(
 
     hass.async_encrypt_fields = async_encrypt_fields  # type: ignore[attr-defined]
     hass.async_reveal_fields = async_reveal_fields  # type: ignore[attr-defined]
+    hass.encryption_enabled = True
 
 
 class VaultException(HomeAssistantError):

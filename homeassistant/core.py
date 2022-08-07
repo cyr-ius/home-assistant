@@ -261,6 +261,7 @@ class HomeAssistant:
         self._stopped: asyncio.Event | None = None
         # Timeout handler for Core/Helper namespace
         self.timeout: TimeoutManager = TimeoutManager()
+        self.encryption_enabled = False
 
     @property
     def is_running(self) -> bool:

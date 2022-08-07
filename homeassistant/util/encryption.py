@@ -31,6 +31,7 @@ def async_enable_encryption(
     if passphrase is None:
         _LOGGER.warning("No passphrase, please add environment variable: PASSPHRASE")
         return
+
     _salt = b"Homeassistant"
     _kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(), length=32, salt=_salt, iterations=390000

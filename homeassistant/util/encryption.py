@@ -26,7 +26,7 @@ def async_enable_encryption(
     """
     # Only bootstrap module can call this method
     if stack()[1].filename[-26:] != "homeassistant/bootstrap.py":
-        raise VaultException("Access is denied")
+        raise EncryptException("Access is denied")
 
     if passphrase is None:
         _LOGGER.warning("No passphrase, please add environment variable: PASSPHRASE")
@@ -53,7 +53,7 @@ def async_enable_encryption(
         """Decrypt fields in data component."""
         # Only config_entries module can call this method
         if stack()[1].filename[-31:] != "homeassistant/config_entries.py":
-            raise VaultException("Access is denied")
+            raise EncryptException("Access is denied")
 
         decrypt_fields: dict[str, str] = {}
         if hasattr(component, "config_flow") and hasattr(
@@ -69,7 +69,7 @@ def async_enable_encryption(
                             {field: fernet.decrypt(value.encode()).decode()}
                         )
             except Exception as error:
-                raise VaultException from error
+                raise EncryptException from error
 
         return decrypt_fields
 
@@ -78,5 +78,5 @@ def async_enable_encryption(
     hass.encryption_enabled = True
 
 
-class VaultException(HomeAssistantError):
-    """Vault exception."""
+class EncryptException(HomeAssistantError):
+    """Encryption exception."""

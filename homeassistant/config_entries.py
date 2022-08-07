@@ -25,7 +25,7 @@ from .helpers.typing import UNDEFINED, ConfigType, DiscoveryInfoType, UndefinedT
 from .setup import async_process_deps_reqs, async_setup_component
 from .util import uuid as uuid_util
 from .util.decorator import Registry
-from .util.encryption import VaultException
+from .util.encryption import EncryptException
 
 if TYPE_CHECKING:
     from .components.bluetooth import BluetoothServiceInfoBleak
@@ -363,7 +363,7 @@ class ConfigEntry:
             if hass.encryption_enabled:
                 try:
                     decrypt_fields = await hass.async_reveal_fields(component)  # type: ignore[attr-defined]
-                except VaultException as error:
+                except EncryptException as error:
                     _LOGGER.error(error)
                     result = False
                 else:
@@ -784,7 +784,7 @@ class ConfigEntriesFlowManager(data_entry_flow.FlowManager):
                 encrypt_data = await self.hass.async_encrypt_fields(  # type: ignore[attr-defined]
                     result["data"], result["encrypt_fields"]
                 )
-            except VaultException as error:
+            except EncryptException as error:
                 _LOGGER.error(error)
             else:
                 result["data"] = encrypt_data

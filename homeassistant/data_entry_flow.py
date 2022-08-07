@@ -101,6 +101,7 @@ class FlowResult(TypedDict, total=False):
     last_step: bool | None
     options: Mapping[str, Any]
     menu_options: list[str] | dict[str, str]
+    encrypt_fields: list[str]
 
 
 @callback

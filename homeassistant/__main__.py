@@ -183,6 +183,7 @@ def main() -> int:
         safe_mode=args.safe_mode,
         debug=args.debug,
         open_ui=args.open_ui,
+        enc_passphrase=os.environ.pop("PASSPHRASE", None),
     )
 
     fault_file_name = os.path.join(config_dir, FAULT_LOG_FILENAME)

@@ -25,6 +25,7 @@ from .helpers.typing import UNDEFINED, ConfigType, DiscoveryInfoType, UndefinedT
 from .setup import async_process_deps_reqs, async_setup_component
 from .util import uuid as uuid_util
 from .util.decorator import Registry
+from .util.encryption import VaultException
 
 if TYPE_CHECKING:
     from .components.bluetooth import BluetoothServiceInfoBleak
@@ -189,6 +190,7 @@ class ConfigEntry:
         "supports_remove_device",
         "pref_disable_new_entities",
         "pref_disable_polling",
+        "encrypt_fields",
         "source",
         "state",
         "disabled_by",
@@ -215,6 +217,7 @@ class ConfigEntry:
         entry_id: str | None = None,
         state: ConfigEntryState = ConfigEntryState.NOT_LOADED,
         disabled_by: ConfigEntryDisabler | None = None,
+        encrypt_fields: list[str] | None = None,
     ) -> None:
         """Initialize a config entry."""
         # Unique id of the config entry
@@ -293,6 +296,9 @@ class ConfigEntry:
 
         self._pending_tasks: list[asyncio.Future[Any]] = []
 
+        # Encrypted fields
+        self.encrypt_fields = encrypt_fields
+
     async def async_setup(
         self,
         hass: HomeAssistant,
@@ -354,7 +360,19 @@ class ConfigEntry:
         error_reason = None
 
         try:
-            result = await component.async_setup_entry(hass, self)
+            if len(decrypt_fields := await hass.async_reveal_fields(component)) > 0:  # type: ignore[attr-defined]
+                try:
+                    result = await component.async_setup_entry(
+                        hass, self, decrypt_fields
+                    )
+                except TypeError:
+                    _LOGGER.error(
+                        "[%s]]Add decrypt_field argument at async_setup_entry(hass,entry, decrypt_field)",
+                        integration.domain,
+                    )
+                    result = False
+            else:
+                result = await component.async_setup_entry(hass, self)
 
             if not isinstance(result, bool):
                 _LOGGER.error(
@@ -618,6 +636,7 @@ class ConfigEntry:
             "source": self.source,
             "unique_id": self.unique_id,
             "disabled_by": self.disabled_by,
+            "encrypt_fields": self.encrypt_fields,
         }
 
     @callback
@@ -756,6 +775,17 @@ class ConfigEntriesFlowManager(data_entry_flow.FlowManager):
         if existing_entry is not None and existing_entry.state.recoverable:
             await self.config_entries.async_unload(existing_entry.entry_id)
 
+        # Field encryption and replacement with encrypted values
+        try:
+            if len(result["encrypt_fields"]) > 0 and hasattr(
+                self.hass, "async_encrypt_fields"
+            ):
+                result["data"] = await self.hass.async_encrypt_fields(  # type: ignore[attr-defined]
+                    result["data"], result["encrypt_fields"]
+                )
+        except VaultException:
+            _LOGGER.warning("No passphrase detected, please add environment variable")
+
         entry = ConfigEntry(
             version=result["version"],
             domain=result["handler"],
@@ -764,6 +794,7 @@ class ConfigEntriesFlowManager(data_entry_flow.FlowManager):
             options=result["options"],
             source=flow.context["source"],
             unique_id=flow.unique_id,
+            encrypt_fields=result["encrypt_fields"],
         )
 
         await self.config_entries.async_add(entry)
@@ -1009,6 +1040,8 @@ class ConfigEntries:
                 # New in 2021.6
                 pref_disable_new_entities=pref_disable_new_entities,
                 pref_disable_polling=entry.get("pref_disable_polling"),
+                # New in 2022.10
+                encrypt_fields=entry.get("encrypt_fields"),
             )
             domain_index.setdefault(domain, []).append(entry_id)
 
@@ -1122,6 +1155,7 @@ class ConfigEntries:
         options: Mapping[str, Any] | UndefinedType = UNDEFINED,
         pref_disable_new_entities: bool | UndefinedType = UNDEFINED,
         pref_disable_polling: bool | UndefinedType = UNDEFINED,
+        encrypt_fields: list[str] | UndefinedType = UNDEFINED,
     ) -> bool:
         """Update a config entry.
 
@@ -1138,6 +1172,7 @@ class ConfigEntries:
             ("title", title),
             ("pref_disable_new_entities", pref_disable_new_entities),
             ("pref_disable_polling", pref_disable_polling),
+            ("encrypt_fields", encrypt_fields),
         ):
             if value == UNDEFINED or getattr(entry, attr) == value:
                 continue
@@ -1555,6 +1590,7 @@ class ConfigFlow(data_entry_flow.FlowHandler):
         description: str | None = None,
         description_placeholders: Mapping[str, str] | None = None,
         options: Mapping[str, Any] | None = None,
+        encrypt_fields: list[str] | None = None,
     ) -> data_entry_flow.FlowResult:
         """Finish config flow and create a config entry."""
         result = super().async_create_entry(
@@ -1565,6 +1601,7 @@ class ConfigFlow(data_entry_flow.FlowHandler):
         )
 
         result["options"] = options or {}
+        result["encrypt_fields"] = encrypt_fields or []
 
         return result
 

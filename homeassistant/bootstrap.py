@@ -35,6 +35,7 @@ from .setup import (
     async_setup_component,
 )
 from .util import dt as dt_util
+from .util.encryption import async_enable_encryption
 from .util.logging import async_activate_log_queue_handler
 from .util.package import async_get_user_site, is_virtual_env
 
@@ -109,6 +110,8 @@ async def async_setup_hass(
         runtime_config.log_file,
         runtime_config.log_no_color,
     )
+
+    async_enable_encryption(hass, runtime_config.enc_passphrase)
 
     hass.config.skip_pip = runtime_config.skip_pip
     if runtime_config.skip_pip:

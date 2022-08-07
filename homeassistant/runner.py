@@ -47,6 +47,8 @@ class RuntimeConfig:
     debug: bool = False
     open_ui: bool = False
 
+    enc_passphrase: str | None = None
+
 
 class HassEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
     """Event loop policy for Home Assistant."""

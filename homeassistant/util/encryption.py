@@ -24,14 +24,12 @@ def async_enable_encryption(
 
     This method avoids having the passphrase stored in an object, method or attribute
     """
-
+    # Only bootstrap module can call this method
     if stack()[1].filename[-26:] != "homeassistant/bootstrap.py":
         raise VaultException("Access is denied")
 
     if passphrase is None:
-        _LOGGER.warning(
-            "No passphrase detected, please add environment variable named: PASSPHRASE"
-        )
+        _LOGGER.warning("No passphrase, please add environment variable: PASSPHRASE")
         return
     _salt = b"Homeassistant"
     _kdf = PBKDF2HMAC(
@@ -52,7 +50,7 @@ def async_enable_encryption(
 
     async def async_reveal_fields(component: ModuleType) -> dict[str, str]:
         """Decrypt fields in data component."""
-        # Only the config_entries module can call this method
+        # Only config_entries module can call this method
         if stack()[1].filename[-31:] != "homeassistant/config_entries.py":
             raise VaultException("Access is denied")
 
@@ -60,24 +58,17 @@ def async_enable_encryption(
         if hasattr(component, "config_flow") and hasattr(
             component.config_flow, "config_entries"
         ):
-
+            config_entry = component.config_flow.config_entries.current_entry.get()
+            if config_entry.encrypt_fields is None:
+                return decrypt_fields
             try:
-                current_entry = component.config_flow.config_entries.current_entry.get()
-                data = current_entry.data
-                if current_entry.encrypt_fields is None:
-                    return decrypt_fields
-            except Exception as error:
-                raise VaultException from error
-
-            try:
-                for field in current_entry.encrypt_fields:
-                    if value := data.get(field):
+                for field in config_entry.encrypt_fields:
+                    if value := config_entry.data.get(field):
                         decrypt_fields.update(
                             {field: fernet.decrypt(value.encode()).decode()}
                         )
-
             except Exception as error:
-                raise EncryptException from error
+                raise VaultException from error
 
         return decrypt_fields
 
@@ -88,7 +79,3 @@ def async_enable_encryption(
 
 class VaultException(HomeAssistantError):
     """Vault exception."""
-
-
-class EncryptException(VaultException):
-    """Fernet exception."""

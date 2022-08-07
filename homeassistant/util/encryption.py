@@ -16,7 +16,6 @@ from ..exceptions import HomeAssistantError
 _LOGGER = logging.getLogger(__name__)
 
 
-@core.callback
 def async_enable_encryption(
     hass: core.HomeAssistant, passphrase: str | None = None
 ) -> None:

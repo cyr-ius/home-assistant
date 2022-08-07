@@ -367,9 +367,13 @@ class ConfigEntry:
                     _LOGGER.error(error)
                     result = False
                 else:
-                    result = await component.async_setup_entry(
-                        hass, self, decrypt_fields
-                    )
+                    if decrypt_fields:
+                        result = await component.async_setup_entry(
+                            hass, self, decrypt_fields
+                        )
+                    else:
+                        result = await component.async_setup_entry(hass, self)
+
             else:
                 result = await component.async_setup_entry(hass, self)
 

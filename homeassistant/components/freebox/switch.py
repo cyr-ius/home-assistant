@@ -1,6 +1,8 @@
 """Support for Freebox Delta, Revolution and Mini 4K."""
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 import logging
 from typing import Any
 
@@ -19,13 +21,34 @@ from .coordinator import FreeboxDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-SWITCH_DESCRIPTIONS = [
-    SwitchEntityDescription(
+@dataclass
+class FreeboxSwitchRequiredKeysMixin:
+    """Mixin for required keys."""
+
+    async_turn_on: Callable[[FreeboxDataUpdateCoordinator], Awaitable]
+    async_turn_off: Callable[[FreeboxDataUpdateCoordinator], Awaitable]
+
+
+@dataclass
+class FreeboxSwitchEntityDescription(
+    SwitchEntityDescription, FreeboxSwitchRequiredKeysMixin
+):
+    """Class describing Freebox button entities."""
+
+
+SWITCH_DESCRIPTIONS: tuple[FreeboxSwitchEntityDescription, ...] = (
+    FreeboxSwitchEntityDescription(
         key="wifi",
-        name="Freebox WiFi",
+        name="WiFi",
         entity_category=EntityCategory.CONFIG,
-    )
-]
+        async_turn_on=lambda coordinator: coordinator.async_execute(
+            "wifi", "set_global_config", {"enabled": True}
+        ),
+        async_turn_off=lambda coordinator: coordinator.async_execute(
+            "wifi", "set_global_config", {"enabled": False}
+        ),
+    ),
+)
 
 
 async def async_setup_entry(
@@ -33,27 +56,33 @@ async def async_setup_entry(
 ) -> None:
     """Set up the switch."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([FreeboxWifiSwitch(coordinator)])
+    entities = [
+        FreeboxSwitch(coordinator, entity_description)
+        for entity_description in SWITCH_DESCRIPTIONS
+    ]
+    async_add_entities(entities)
 
 
-class FreeboxWifiSwitch(FreeboxEntity, SwitchEntity):
+class FreeboxSwitch(FreeboxEntity, SwitchEntity):
     """Representation of a freebox wifi switch."""
 
-    _attr_name = "WiFi"
+    entity_description: FreeboxSwitchEntityDescription
 
-    def __init__(self, coordinator: FreeboxDataUpdateCoordinator) -> None:
+    def __init__(
+        self,
+        coordinator: FreeboxDataUpdateCoordinator,
+        description: FreeboxSwitchEntityDescription,
+    ) -> None:
         """Initialize the Wifi switch."""
         super().__init__(coordinator)
+        self.entity_description = description
         self._attr_unique_id = f"{self.coordinator.entry.entry_id} {self.name}"
         self._attr_device_info = coordinator.data["device_info"]
 
-    @callback
-    async def _async_set_state(self, enabled: bool):
+    async def _async_set_state(self, method_execute: Callable):
         """Turn the switch on or off."""
         try:
-            await self.coordinator.async_execute(
-                "wifi", "set_global_config", {"enabled": enabled}
-            )
+            await method_execute(self.coordinator)
             await self.coordinator.async_request_refresh()
         except InsufficientPermissionsError:
             _LOGGER.warning(
@@ -62,11 +91,11 @@ class FreeboxWifiSwitch(FreeboxEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        await self._async_set_state(True)
+        await self._async_set_state(self.entity_description.async_turn_on)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        await self._async_set_state(False)
+        await self._async_set_state(self.entity_description.async_turn_off)
 
     @callback
     def _handle_coordinator_update(self) -> None:

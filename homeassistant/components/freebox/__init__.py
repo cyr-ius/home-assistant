@@ -62,7 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "replaced by a dedicated reboot button entity; please "
             "use that entity to reboot the freebox instead"
         )
-        await coordinator.api.system.reboot()
+        await coordinator.async_execute("system", "reboot")
 
     hass.services.async_register(DOMAIN, SERVICE_REBOOT, async_reboot)
 

@@ -27,6 +27,7 @@ class FreeboxSwitchRequiredKeysMixin:
 
     async_turn_on: Callable[[FreeboxDataUpdateCoordinator], Awaitable]
     async_turn_off: Callable[[FreeboxDataUpdateCoordinator], Awaitable]
+    is_on: Callable[[FreeboxDataUpdateCoordinator], bool]
 
 
 @dataclass
@@ -47,6 +48,8 @@ SWITCH_DESCRIPTIONS: tuple[FreeboxSwitchEntityDescription, ...] = (
         async_turn_off=lambda coordinator: coordinator.async_execute(
             "wifi", "set_global_config", {"enabled": False}
         ),
+        is_on=lambda coordinator: coordinator.data["wifi"].get("enabled", False)
+        is True,
     ),
 )
 
@@ -100,5 +103,5 @@ class FreeboxSwitch(FreeboxEntity, SwitchEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Get the state and update it."""
-        self._attr_is_on = bool(self.coordinator.data["wifi"].get("enabled", False))
+        self._attr_is_on = self.entity_description.is_on(self.coordinator)
         super()._handle_coordinator_update()

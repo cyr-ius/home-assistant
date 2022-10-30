@@ -16,8 +16,6 @@ from homeassistant.core import HomeAssistant
 
 from .const import MOCK_HOST, MOCK_PORT
 
-from tests.common import MockConfigEntry
-
 MOCK_ZEROCONF_DATA = zeroconf.ZeroconfServiceInfo(
     host="192.168.0.254",
     addresses=["192.168.0.254"],
@@ -39,7 +37,7 @@ MOCK_ZEROCONF_DATA = zeroconf.ZeroconfServiceInfo(
 )
 
 
-async def test_user(hass: HomeAssistant):
+async def test_user(hass: HomeAssistant, router: Mock):
     """Test user config."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
@@ -57,7 +55,7 @@ async def test_user(hass: HomeAssistant):
     assert result["step_id"] == "link"
 
 
-async def test_import(hass: HomeAssistant):
+async def test_import(hass: HomeAssistant, router: Mock):
     """Test import step."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -68,7 +66,7 @@ async def test_import(hass: HomeAssistant):
     assert result["step_id"] == "link"
 
 
-async def test_zeroconf(hass: HomeAssistant):
+async def test_zeroconf(hass: HomeAssistant, router: Mock):
     """Test zeroconf step."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -104,14 +102,10 @@ async def test_link(hass: HomeAssistant, router: Mock):
         assert len(mock_setup_entry.mock_calls) == 1
 
 
-async def test_abort_if_already_setup(hass: HomeAssistant):
+async def test_abort_if_already_setup(
+    hass: HomeAssistant, router: Mock, config_entry: Mock
+):
     """Test we abort if component is already setup."""
-    MockConfigEntry(
-        domain=DOMAIN,
-        data={CONF_HOST: MOCK_HOST, CONF_PORT: MOCK_PORT},
-        unique_id=MOCK_HOST,
-    ).add_to_hass(hass)
-
     # Should fail, same MOCK_HOST (import)
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -140,15 +134,16 @@ async def test_on_link_failed(hass: HomeAssistant):
     )
 
     with patch(
-        "homeassistant.components.freebox.router.Freepybox.open",
+        "homeassistant.components.freebox.coordinator.Freepybox.open",
         side_effect=AuthorizationError(),
     ):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        await hass.async_block_till_done()
         assert result["type"] == data_entry_flow.FlowResultType.FORM
         assert result["errors"] == {"base": "register_failed"}
 
     with patch(
-        "homeassistant.components.freebox.router.Freepybox.open",
+        "homeassistant.components.freebox.coordinator.Freepybox.open",
         side_effect=HttpRequestError(),
     ):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
@@ -156,7 +151,7 @@ async def test_on_link_failed(hass: HomeAssistant):
         assert result["errors"] == {"base": "cannot_connect"}
 
     with patch(
-        "homeassistant.components.freebox.router.Freepybox.open",
+        "homeassistant.components.freebox.coordinator.Freepybox.open",
         side_effect=InvalidTokenError(),
     ):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {})

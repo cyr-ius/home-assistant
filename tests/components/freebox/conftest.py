@@ -3,6 +3,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from homeassistant.components.freebox.const import DOMAIN
+from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.helpers import device_registry as dr
 
 from .const import (
@@ -11,16 +13,31 @@ from .const import (
     DATA_LAN_GET_HOSTS_LIST,
     DATA_STORAGE_GET_DISKS,
     DATA_SYSTEM_GET_CONFIG,
+    MOCK_HOST,
+    MOCK_PORT,
     WIFI_GET_GLOBAL_CONFIG,
 )
 
 from tests.common import MockConfigEntry
 
 
+@pytest.fixture(name="config_entry")
+def config_entry_fixture(hass):
+    """Define a config entry fixture."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="",
+        unique_id=MOCK_HOST,
+        data={CONF_HOST: MOCK_HOST, CONF_PORT: MOCK_PORT},
+    )
+    entry.add_to_hass(hass)
+    return entry
+
+
 @pytest.fixture(autouse=True)
 def mock_path():
     """Mock path lib."""
-    with patch("homeassistant.components.freebox.router.Path"):
+    with patch("homeassistant.components.freebox.coordinator.Path"):
         yield
 
 
@@ -49,10 +66,13 @@ def mock_device_registry_devices(hass):
 @pytest.fixture(name="router")
 def mock_router(mock_device_registry_devices):
     """Mock a successful connection."""
-    with patch("homeassistant.components.freebox.router.Freepybox") as service_mock:
+    with patch(
+        "homeassistant.components.freebox.coordinator.Freepybox"
+    ) as service_mock:
         instance = service_mock.return_value
         instance.open = AsyncMock()
         instance.system.get_config = AsyncMock(return_value=DATA_SYSTEM_GET_CONFIG)
+        instance.system.reboot = AsyncMock()
         # sensor
         instance.call.get_calls_log = AsyncMock(return_value=DATA_CALL_GET_CALLS_LOG)
         instance.storage.get_disks = AsyncMock(return_value=DATA_STORAGE_GET_DISKS)
@@ -61,6 +81,7 @@ def mock_router(mock_device_registry_devices):
         )
         # switch
         instance.wifi.get_global_config = AsyncMock(return_value=WIFI_GET_GLOBAL_CONFIG)
+        instance.wifi.set_global_config = AsyncMock()
         # device_tracker
         instance.lan.get_hosts_list = AsyncMock(return_value=DATA_LAN_GET_HOSTS_LIST)
         instance.close = AsyncMock()

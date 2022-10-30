@@ -1,83 +1,53 @@
 """Support for Freebox devices (Freebox v6 and Freebox mini 4K)."""
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+import logging
 
-from homeassistant.components.button import (
-    ButtonDeviceClass,
-    ButtonEntity,
-    ButtonEntityDescription,
-)
+from freebox_api.exceptions import InsufficientPermissionsError
+
+from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .router import FreeboxRouter
+from .coordinator import FreeboxDataUpdateCoordinator
 
-
-@dataclass
-class FreeboxButtonRequiredKeysMixin:
-    """Mixin for required keys."""
-
-    async_press: Callable[[FreeboxRouter], Awaitable]
-
-
-@dataclass
-class FreeboxButtonEntityDescription(
-    ButtonEntityDescription, FreeboxButtonRequiredKeysMixin
-):
-    """Class describing Freebox button entities."""
-
-
-BUTTON_DESCRIPTIONS: tuple[FreeboxButtonEntityDescription, ...] = (
-    FreeboxButtonEntityDescription(
-        key="reboot",
-        name="Reboot Freebox",
-        device_class=ButtonDeviceClass.RESTART,
-        entity_category=EntityCategory.CONFIG,
-        async_press=lambda router: router.reboot(),
-    ),
-    FreeboxButtonEntityDescription(
-        key="mark_calls_as_read",
-        name="Mark calls as read",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        async_press=lambda router: router.call.mark_calls_log_as_read(),
-    ),
-)
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the buttons."""
-    router: FreeboxRouter = hass.data[DOMAIN][entry.unique_id]
-    entities = [
-        FreeboxButton(router, description) for description in BUTTON_DESCRIPTIONS
-    ]
-    async_add_entities(entities, True)
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([FreeboxButton(coordinator)], True)
 
 
-class FreeboxButton(ButtonEntity):
+class FreeboxButton(CoordinatorEntity[FreeboxDataUpdateCoordinator], ButtonEntity):
     """Representation of a Freebox button."""
 
-    entity_description: FreeboxButtonEntityDescription
+    _attr_device_class = ButtonDeviceClass.RESTART
+    _attr_has_entity_name = True
+    _attr_name = "Reboot"
 
     def __init__(
-        self, router: FreeboxRouter, description: FreeboxButtonEntityDescription
+        self,
+        coordinator: FreeboxDataUpdateCoordinator,
     ) -> None:
         """Initialize a Freebox button."""
-        self.entity_description = description
-        self._router = router
-        self._attr_unique_id = f"{router.mac} {description.name}"
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return the device information."""
-        return self._router.device_info
+        super().__init__(coordinator)
+        self.coordinator = coordinator
+        self._attr_unique_id = f"{coordinator.entry.entry_id} {self.name}"
+        self._attr_device_info = coordinator.data["device_info"]
 
     async def async_press(self) -> None:
         """Press the button."""
-        await self.entity_description.async_press(self._router)
+        try:
+            await self.coordinator.async_execute("system", "reboot")
+            await self.coordinator.async_request_refresh()
+        except InsufficientPermissionsError:
+            _LOGGER.warning(
+                "Home Assistant does not have permissions to modify the Freebox settings. Please refer to documentation"
+            )

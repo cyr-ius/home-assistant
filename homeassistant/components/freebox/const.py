@@ -25,17 +25,16 @@ DEFAULT_DEVICE_NAME = "Unknown device"
 STORAGE_KEY = DOMAIN
 STORAGE_VERSION = 1
 
-
 CONNECTION_SENSORS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="rate_down",
-        name="Freebox download speed",
+        name="download speed",
         native_unit_of_measurement=DATA_RATE_KILOBYTES_PER_SECOND,
         icon="mdi:download-network",
     ),
     SensorEntityDescription(
         key="rate_up",
-        name="Freebox upload speed",
+        name="upload speed",
         native_unit_of_measurement=DATA_RATE_KILOBYTES_PER_SECOND,
         icon="mdi:upload-network",
     ),
@@ -45,7 +44,7 @@ CONNECTION_SENSORS_KEYS: list[str] = [desc.key for desc in CONNECTION_SENSORS]
 CALL_SENSORS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="missed",
-        name="Freebox missed calls",
+        name="missed calls",
         icon="mdi:phone-missed",
     ),
 )

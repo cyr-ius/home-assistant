@@ -8,12 +8,12 @@ from freebox_api.exceptions import InsufficientPermissionsError
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .router import FreeboxRouter
+from .coordinator import FreeboxDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,30 +31,29 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the switch."""
-    router: FreeboxRouter = hass.data[DOMAIN][entry.unique_id]
-    entities = [
-        FreeboxSwitch(router, entity_description)
-        for entity_description in SWITCH_DESCRIPTIONS
-    ]
-    async_add_entities(entities, True)
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([FreeboxWifiSwitch(coordinator)], True)
 
 
-class FreeboxSwitch(SwitchEntity):
-    """Representation of a freebox switch."""
+class FreeboxWifiSwitch(CoordinatorEntity[FreeboxDataUpdateCoordinator], SwitchEntity):
+    """Representation of a freebox wifi switch."""
 
-    def __init__(
-        self, router: FreeboxRouter, entity_description: SwitchEntityDescription
-    ) -> None:
-        """Initialize the switch."""
-        self.entity_description = entity_description
-        self._router = router
-        self._attr_device_info = self._router.device_info
-        self._attr_unique_id = f"{self._router.mac} {self.entity_description.name}"
+    _attr_has_entity_name = True
+    _attr_name = "WiFi"
+
+    def __init__(self, coordinator: FreeboxDataUpdateCoordinator) -> None:
+        """Initialize the Wifi switch."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self.coordinator.entry.entry_id} {self.name}"
+        self._attr_device_info = coordinator.data["device_info"]
 
     async def _async_set_state(self, enabled: bool):
         """Turn the switch on or off."""
         try:
-            await self._router.wifi.set_global_config({"enabled": enabled})
+            await self.coordinator.async_execute(
+                "wifi", "set_global_config", {"enabled": enabled}
+            )
+            await self.coordinator.async_request_refresh()
         except InsufficientPermissionsError:
             _LOGGER.warning(
                 "Home Assistant does not have permissions to modify the Freebox settings. Please refer to documentation"
@@ -68,7 +67,8 @@ class FreeboxSwitch(SwitchEntity):
         """Turn the switch off."""
         await self._async_set_state(False)
 
-    async def async_update(self) -> None:
+    @callback
+    def _handle_coordinator_update(self) -> None:
         """Get the state and update it."""
-        datas = await self._router.wifi.get_global_config()
-        self._attr_is_on = bool(datas["enabled"])
+        self._attr_is_on = bool(self.coordinator.data["wifi"].get("enabled", False))
+        super()._handle_coordinator_update()

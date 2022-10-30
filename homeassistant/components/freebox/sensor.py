@@ -10,15 +10,15 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import DATA_RATE_KILOBYTES_PER_SECOND, TEMP_CELSIUS
+from homeassistant.const import TEMP_CELSIUS
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import homeassistant.util.dt as dt_util
 
 from .const import CALL_SENSORS, CONNECTION_SENSORS, DISK_PARTITION_SENSORS, DOMAIN
-from .router import FreeboxRouter
+from .coordinator import FreeboxDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,121 +27,140 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the sensors."""
-    router: FreeboxRouter = hass.data[DOMAIN][entry.unique_id]
-    entities = []
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    entities: list[FreeboxSensor] = []
 
-    _LOGGER.debug(
-        "%s - %s - %s temperature sensors",
-        router.name,
-        router.mac,
-        len(router.sensors_temperature),
-    )
-    entities = [
-        FreeboxSensor(
-            router,
-            SensorEntityDescription(
-                key=sensor_name,
-                name=f"Freebox {sensor_name}",
-                native_unit_of_measurement=TEMP_CELSIUS,
-                device_class=SensorDeviceClass.TEMPERATURE,
-            ),
+    temperature_sensors_list = [
+        SensorEntityDescription(
+            key=sensor_name,
+            name=sensor_name,
+            native_unit_of_measurement=TEMP_CELSIUS,
         )
-        for sensor_name in router.sensors_temperature
+        for sensor_name in coordinator.data["sensors"]
     ]
-
-    entities.extend(
-        [FreeboxSensor(router, description) for description in CONNECTION_SENSORS]
-    )
-    entities.extend(
-        [FreeboxCallSensor(router, description) for description in CALL_SENSORS]
+    temperature_sensors: tuple[SensorEntityDescription, ...] = tuple(
+        temperature_sensors_list
     )
 
-    _LOGGER.debug("%s - %s - %s disk(s)", router.name, router.mac, len(router.disks))
     entities.extend(
-        FreeboxDiskSensor(router, disk, partition, description)
-        for disk in router.disks.values()
-        for partition in disk["partitions"]
-        for description in DISK_PARTITION_SENSORS
+        [
+            FreeboxTemperatureSensor(coordinator, description)
+            for description in temperature_sensors
+        ]
+    )
+    entities.extend(
+        [
+            FreeboxConnectionSensor(coordinator, description)
+            for description in CONNECTION_SENSORS
+        ]
+    )
+    entities.extend(
+        [FreeboxCallSensor(coordinator, description) for description in CALL_SENSORS]
+    )
+    entities.extend(
+        [
+            FreeboxDiskSensor(coordinator, description, disk, partition)
+            for disk in coordinator.data["disks"].values()
+            for partition in disk["partitions"]
+            for description in DISK_PARTITION_SENSORS
+        ]
     )
 
     async_add_entities(entities, True)
 
 
-class FreeboxSensor(SensorEntity):
+class FreeboxSensor(CoordinatorEntity[FreeboxDataUpdateCoordinator], SensorEntity):
     """Representation of a Freebox sensor."""
 
-    _attr_should_poll = False
+    _attr_has_entity_name = True
 
     def __init__(
-        self, router: FreeboxRouter, description: SensorEntityDescription
+        self,
+        coordinator: FreeboxDataUpdateCoordinator,
+        description: SensorEntityDescription,
     ) -> None:
         """Initialize a Freebox sensor."""
+        super().__init__(coordinator)
+        self.coordinator = coordinator
         self.entity_description = description
-        self._router = router
-        self._attr_unique_id = f"{router.mac} {description.name}"
+        self._attr_device_info = coordinator.data["device_info"]
+        self._attr_unique_id = f"{self.coordinator.entry.entry_id} {description.name}"
+
+
+class FreeboxTemperatureSensor(FreeboxSensor):
+    """Representation of a Freebox temperature sensor."""
+
+    def __init__(
+        self,
+        coordinator: FreeboxDataUpdateCoordinator,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialize a Freebox sensor."""
+        super().__init__(coordinator, description)
+        self.coordinator = coordinator
+        self.entity_description = description
+        self._attr_device_class = SensorDeviceClass.TEMPERATURE
 
     @callback
-    def async_update_state(self) -> None:
+    def _handle_coordinator_update(self) -> None:
         """Update the Freebox sensor."""
-        state = self._router.sensors[self.entity_description.key]
-        if self.native_unit_of_measurement == DATA_RATE_KILOBYTES_PER_SECOND:
-            self._attr_native_value = round(state / 1000, 2)
-        else:
-            self._attr_native_value = state
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return the device information."""
-        return self._router.device_info
-
-    @callback
-    def async_on_demand_update(self):
-        """Update state."""
-        self.async_update_state()
-        self.async_write_ha_state()
-
-    async def async_added_to_hass(self) -> None:
-        """Register state update callback."""
-        self.async_update_state()
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                self._router.signal_sensor_update,
-                self.async_on_demand_update,
-            )
-        )
+        self._attr_native_value = self.coordinator.data["sensors"][
+            self.entity_description.key
+        ]
+        super()._handle_coordinator_update()
 
 
 class FreeboxCallSensor(FreeboxSensor):
     """Representation of a Freebox call sensor."""
 
     def __init__(
-        self, router: FreeboxRouter, description: SensorEntityDescription
+        self,
+        coordinator: FreeboxDataUpdateCoordinator,
+        description: SensorEntityDescription,
     ) -> None:
         """Initialize a Freebox call sensor."""
-        super().__init__(router, description)
-        self._call_list_for_type: list[dict[str, Any]] = []
+        super().__init__(coordinator, description)
+        self.coordinator = coordinator
+        self.entity_description = description
 
     @callback
-    def async_update_state(self) -> None:
+    def _handle_coordinator_update(self) -> None:
         """Update the Freebox call sensor."""
-        self._call_list_for_type = []
-        if self._router.call_list:
-            for call in self._router.call_list:
+        call_list_for_type = []
+        if call_list := self.coordinator.data["call_list"]:
+            for call in call_list:
                 if not call["new"]:
                     continue
                 if self.entity_description.key == call["type"]:
-                    self._call_list_for_type.append(call)
+                    call_list_for_type.append(call)
 
-        self._attr_native_value = len(self._call_list_for_type)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return device specific state attributes."""
-        return {
+        self._attr_extra_state_attributes = {
             dt_util.utc_from_timestamp(call["datetime"]).isoformat(): call["name"]
-            for call in self._call_list_for_type
+            for call in call_list_for_type
         }
+        self._attr_native_value = len(call_list_for_type)
+        super()._handle_coordinator_update()
+
+
+class FreeboxConnectionSensor(FreeboxSensor):
+    """Representation of a Freebox temperature sensor."""
+
+    def __init__(
+        self,
+        coordinator: FreeboxDataUpdateCoordinator,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialize a Freebox sensor."""
+        super().__init__(coordinator, description)
+        self.coordinator = coordinator
+        self.entity_description = description
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update the Freebox sensor."""
+        state = self.coordinator.data["sensors_connection"][self.entity_description.key]
+        self._attr_native_value = round(state / 1000, 2)
+        super()._handle_coordinator_update()
 
 
 class FreeboxDiskSensor(FreeboxSensor):
@@ -149,17 +168,19 @@ class FreeboxDiskSensor(FreeboxSensor):
 
     def __init__(
         self,
-        router: FreeboxRouter,
+        coordinator: FreeboxDataUpdateCoordinator,
+        description: SensorEntityDescription,
         disk: dict[str, Any],
         partition: dict[str, Any],
-        description: SensorEntityDescription,
     ) -> None:
         """Initialize a Freebox disk sensor."""
-        super().__init__(router, description)
+        super().__init__(coordinator, description)
+        self.coordinator = coordinator
+        self.entity_description = description
         self._disk = disk
         self._partition = partition
         self._attr_name = f"{partition['label']} {description.name}"
-        self._attr_unique_id = f"{self._router.mac} {description.key} {self._disk['id']} {self._partition['id']}"
+        self._attr_unique_id = f"{coordinator.entry.entry_id} {description.key} {disk['id']} {partition['id']}"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -169,14 +190,11 @@ class FreeboxDiskSensor(FreeboxSensor):
             model=self._disk["model"],
             name=f"Disk {self._disk['id']}",
             sw_version=self._disk["firmware"],
-            via_device=(
-                DOMAIN,
-                self._router.mac,
-            ),
+            via_device=(DOMAIN, self.coordinator.entry.entry_id),
         )
 
     @callback
-    def async_update_state(self) -> None:
+    def _handle_coordinator_update(self) -> None:
         """Update the Freebox disk sensor."""
         value = None
         if self._partition.get("total_bytes"):
@@ -184,3 +202,4 @@ class FreeboxDiskSensor(FreeboxSensor):
                 self._partition["free_bytes"] * 100 / self._partition["total_bytes"], 2
             )
         self._attr_native_value = value
+        super()._handle_coordinator_update()

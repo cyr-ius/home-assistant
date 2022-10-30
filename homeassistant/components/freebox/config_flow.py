@@ -1,4 +1,5 @@
 """Config flow to configure the Freebox integration."""
+from contextlib import suppress
 import logging
 
 from freebox_api.exceptions import AuthorizationError, HttpRequestError
@@ -32,7 +33,6 @@ class FreeboxFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize Freebox config flow."""
         self._host = None
         self._port = None
-        self._unique_id = None
 
     def _show_setup_form(self, user_input=None, errors=None):
         """Show the setup form to the user."""
@@ -44,14 +44,16 @@ class FreeboxFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle a flow initiated by the user."""
         errors = {}
-        if user_input:
-            self._host = user_input[CONF_HOST]
-            self._port = user_input[CONF_PORT]
-            await self.async_set_unique_id(self._unique_id)
-            self._abort_if_unique_id_configured()
-            return await self.async_step_link()
+        if user_input is None:
+            return self._show_setup_form(user_input, errors)
 
-        return self._show_setup_form(user_input, errors)
+        self._host = user_input[CONF_HOST]
+        self._port = user_input[CONF_PORT]
+
+        await self.async_set_unique_id(self._host)
+        self._abort_if_unique_id_configured()
+
+        return await self.async_step_link()
 
     async def async_step_link(self, user_input=None):
         """Attempt to link with the Freebox router.
@@ -63,12 +65,10 @@ class FreeboxFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="link", errors=errors)
 
+        fbx = await self.hass.async_add_executor_job(get_api, self.hass, self._host)
         try:
-            fbx = await self.hass.async_add_executor_job(get_api, self.hass, self._host)
             await fbx.open(self._host, self._port)
-            system = await fbx.system.get_config()
-            self._unique_id = system.get("mac", self._host)
-
+            await fbx.system.get_config()
         except AuthorizationError as error:
             _LOGGER.error(error)
             errors["base"] = "register_failed"
@@ -89,8 +89,9 @@ class FreeboxFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 data={CONF_HOST: self._host, CONF_PORT: self._port},
             )
         finally:
-            # Close connection
-            await fbx.close()
+            with suppress(Exception):
+                # Close connection
+                await fbx.close()
 
         return self.async_show_form(step_id="link", errors=errors)
 

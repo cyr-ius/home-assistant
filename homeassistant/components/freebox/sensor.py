@@ -14,9 +14,9 @@ from homeassistant.const import TEMP_CELSIUS
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import homeassistant.util.dt as dt_util
 
+from . import FreeboxEntity
 from .const import CALL_SENSORS, CONNECTION_SENSORS, DISK_PARTITION_SENSORS, DOMAIN
 from .coordinator import FreeboxDataUpdateCoordinator
 
@@ -28,7 +28,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the sensors."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[FreeboxSensor] = []
+    entities: list[FreeboxEntity] = []
 
     temperature_sensors_list = [
         SensorEntityDescription(
@@ -66,28 +66,10 @@ async def async_setup_entry(
         ]
     )
 
-    async_add_entities(entities, True)
+    async_add_entities(entities)
 
 
-class FreeboxSensor(CoordinatorEntity[FreeboxDataUpdateCoordinator], SensorEntity):
-    """Representation of a Freebox sensor."""
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        coordinator: FreeboxDataUpdateCoordinator,
-        description: SensorEntityDescription,
-    ) -> None:
-        """Initialize a Freebox sensor."""
-        super().__init__(coordinator)
-        self.coordinator = coordinator
-        self.entity_description = description
-        self._attr_device_info = coordinator.data["device_info"]
-        self._attr_unique_id = f"{self.coordinator.entry.entry_id} {description.name}"
-
-
-class FreeboxTemperatureSensor(FreeboxSensor):
+class FreeboxTemperatureSensor(FreeboxEntity, SensorEntity):
     """Representation of a Freebox temperature sensor."""
 
     def __init__(
@@ -96,9 +78,9 @@ class FreeboxTemperatureSensor(FreeboxSensor):
         description: SensorEntityDescription,
     ) -> None:
         """Initialize a Freebox sensor."""
-        super().__init__(coordinator, description)
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.entity_description = description
+        self._attr_unique_id = f"{coordinator.entry.entry_id} {description.name}"
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
 
     @callback
@@ -110,7 +92,7 @@ class FreeboxTemperatureSensor(FreeboxSensor):
         super()._handle_coordinator_update()
 
 
-class FreeboxCallSensor(FreeboxSensor):
+class FreeboxCallSensor(FreeboxEntity, SensorEntity):
     """Representation of a Freebox call sensor."""
 
     def __init__(
@@ -119,9 +101,9 @@ class FreeboxCallSensor(FreeboxSensor):
         description: SensorEntityDescription,
     ) -> None:
         """Initialize a Freebox call sensor."""
-        super().__init__(coordinator, description)
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.entity_description = description
+        self._attr_unique_id = f"{coordinator.entry.entry_id} {description.name}"
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -142,7 +124,7 @@ class FreeboxCallSensor(FreeboxSensor):
         super()._handle_coordinator_update()
 
 
-class FreeboxConnectionSensor(FreeboxSensor):
+class FreeboxConnectionSensor(FreeboxEntity, SensorEntity):
     """Representation of a Freebox temperature sensor."""
 
     def __init__(
@@ -151,9 +133,9 @@ class FreeboxConnectionSensor(FreeboxSensor):
         description: SensorEntityDescription,
     ) -> None:
         """Initialize a Freebox sensor."""
-        super().__init__(coordinator, description)
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.entity_description = description
+        self._attr_unique_id = f"{coordinator.entry.entry_id} {description.name}"
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -163,7 +145,7 @@ class FreeboxConnectionSensor(FreeboxSensor):
         super()._handle_coordinator_update()
 
 
-class FreeboxDiskSensor(FreeboxSensor):
+class FreeboxDiskSensor(FreeboxEntity, SensorEntity):
     """Representation of a Freebox disk sensor."""
 
     def __init__(
@@ -174,8 +156,7 @@ class FreeboxDiskSensor(FreeboxSensor):
         partition: dict[str, Any],
     ) -> None:
         """Initialize a Freebox disk sensor."""
-        super().__init__(coordinator, description)
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.entity_description = description
         self._disk = disk
         self._partition = partition

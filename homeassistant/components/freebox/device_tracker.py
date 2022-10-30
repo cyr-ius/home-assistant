@@ -8,8 +8,8 @@ from homeassistant.components.device_tracker import ScannerEntity, SourceType
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import FreeboxEntity
 from .const import DEFAULT_DEVICE_NAME, DEVICE_ICONS, DOMAIN
 from .coordinator import FreeboxDataUpdateCoordinator
 
@@ -29,7 +29,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class FreeboxDevice(CoordinatorEntity[FreeboxDataUpdateCoordinator], ScannerEntity):
+class FreeboxDevice(FreeboxEntity, ScannerEntity):
     """Representation of a Freebox device."""
 
     _attr_has_entity_name = True
@@ -39,7 +39,6 @@ class FreeboxDevice(CoordinatorEntity[FreeboxDataUpdateCoordinator], ScannerEnti
     ) -> None:
         """Initialize a Freebox device."""
         super().__init__(coordinator)
-        self.coordinator = coordinator
         self.device_id = self._attr_unique_id = device_id
         device = coordinator.data["device_trackers"][device_id]
         self._attr_name = device.get("primary_name", DEFAULT_DEVICE_NAME).strip()

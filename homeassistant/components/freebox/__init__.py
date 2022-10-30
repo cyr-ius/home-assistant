@@ -7,7 +7,9 @@ from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, PLATFORMS, SERVICE_REBOOT
 from .coordinator import FreeboxDataUpdateCoordinator
@@ -73,3 +75,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
         hass.services.async_remove(DOMAIN, SERVICE_REBOOT)
     return unload_ok
+
+
+class FreeboxEntity(CoordinatorEntity[FreeboxDataUpdateCoordinator], Entity):
+    """Representation of a Freebox entity."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: FreeboxDataUpdateCoordinator) -> None:
+        """Initialize entity."""
+        super().__init__(coordinator)
+        self._attr_device_info = coordinator.data["device_info"]
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        self._handle_coordinator_update()

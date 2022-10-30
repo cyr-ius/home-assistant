@@ -10,8 +10,8 @@ from homeassistant.components.switch import SwitchEntity, SwitchEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import FreeboxEntity
 from .const import DOMAIN
 from .coordinator import FreeboxDataUpdateCoordinator
 
@@ -32,13 +32,12 @@ async def async_setup_entry(
 ) -> None:
     """Set up the switch."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([FreeboxWifiSwitch(coordinator)], True)
+    async_add_entities([FreeboxWifiSwitch(coordinator)])
 
 
-class FreeboxWifiSwitch(CoordinatorEntity[FreeboxDataUpdateCoordinator], SwitchEntity):
+class FreeboxWifiSwitch(FreeboxEntity, SwitchEntity):
     """Representation of a freebox wifi switch."""
 
-    _attr_has_entity_name = True
     _attr_name = "WiFi"
 
     def __init__(self, coordinator: FreeboxDataUpdateCoordinator) -> None:
@@ -47,6 +46,7 @@ class FreeboxWifiSwitch(CoordinatorEntity[FreeboxDataUpdateCoordinator], SwitchE
         self._attr_unique_id = f"{self.coordinator.entry.entry_id} {self.name}"
         self._attr_device_info = coordinator.data["device_info"]
 
+    @callback
     async def _async_set_state(self, enabled: bool):
         """Turn the switch on or off."""
         try:

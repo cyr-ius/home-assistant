@@ -9,8 +9,8 @@ from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import FreeboxEntity
 from .const import DOMAIN
 from .coordinator import FreeboxDataUpdateCoordinator
 
@@ -22,14 +22,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up the buttons."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([FreeboxButton(coordinator)], True)
+    async_add_entities([FreeboxButton(coordinator)])
 
 
-class FreeboxButton(CoordinatorEntity[FreeboxDataUpdateCoordinator], ButtonEntity):
+class FreeboxButton(FreeboxEntity, ButtonEntity):
     """Representation of a Freebox button."""
 
     _attr_device_class = ButtonDeviceClass.RESTART
-    _attr_has_entity_name = True
     _attr_name = "Reboot"
 
     def __init__(
@@ -38,9 +37,7 @@ class FreeboxButton(CoordinatorEntity[FreeboxDataUpdateCoordinator], ButtonEntit
     ) -> None:
         """Initialize a Freebox button."""
         super().__init__(coordinator)
-        self.coordinator = coordinator
         self._attr_unique_id = f"{coordinator.entry.entry_id} {self.name}"
-        self._attr_device_info = coordinator.data["device_info"]
 
     async def async_press(self) -> None:
         """Press the button."""

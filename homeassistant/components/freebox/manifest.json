@@ -5,7 +5,7 @@
   "documentation": "https://www.home-assistant.io/integrations/freebox",
   "requirements": ["freebox-api==1.0.1"],
   "zeroconf": ["_fbx-api._tcp.local."],
-  "codeowners": ["@hacf-fr", "@Quentame"],
+  "codeowners": ["@hacf-fr", "@Quentame", "@Cyr-ius"],
   "iot_class": "local_polling",
   "loggers": ["freebox_api"]
 }

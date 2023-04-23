@@ -31,6 +31,7 @@ from .const import (
     CONF_ADB_SERVER_PORT,
     CONF_ADBKEY,
     CONF_APPS,
+    CONF_CURRENT_APP_COMMAND,
     CONF_EXCLUDE_UNNAMED_APPS,
     CONF_GET_SOURCES,
     CONF_SCREENCAP,
@@ -266,6 +267,12 @@ class OptionsFlowHandler(OptionsFlowWithConfigEntry):
                     CONF_TURN_ON_COMMAND,
                     description={
                         "suggested_value": options.get(CONF_TURN_ON_COMMAND, "")
+                    },
+                ): str,
+                vol.Optional(
+                    CONF_CURRENT_APP_COMMAND,
+                    description={
+                        "suggested_value": options.get(CONF_CURRENT_APP_COMMAND, "")
                     },
                 ): str,
                 vol.Optional(CONF_STATE_DETECTION_RULES): SelectSelector(

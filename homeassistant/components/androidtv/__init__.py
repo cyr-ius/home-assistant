@@ -40,6 +40,7 @@ from .const import (
     CONF_ADB_SERVER_IP,
     CONF_ADB_SERVER_PORT,
     CONF_ADBKEY,
+    CONF_CURRENT_APP_COMMAND,
     CONF_STATE_DETECTION_RULES,
     DEFAULT_ADB_SERVER_PORT,
     DEVICE_ANDROIDTV,
@@ -149,7 +150,6 @@ async def async_connect_androidtv(
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Android Debug Bridge platform."""
-
     state_det_rules = entry.options.get(CONF_STATE_DETECTION_RULES)
     if CONF_ADB_SERVER_IP not in entry.data:
         exceptions = ADB_PYTHON_EXCEPTIONS
@@ -165,6 +165,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if not aftv:
         raise ConfigEntryNotReady(error_message)
+
+    if current_app_command := entry.options.get(CONF_CURRENT_APP_COMMAND):
+        aftv.customize_command("current_app_media_session_state", current_app_command)
 
     async def async_close_connection(event):
         """Close Android Debug Bridge connection on HA Stop."""

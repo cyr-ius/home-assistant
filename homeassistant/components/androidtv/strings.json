@@ -34,7 +34,8 @@
           "screencap": "Use screen capture for album art",
           "state_detection_rules": "Configure state detection rules",
           "turn_off_command": "ADB shell turn off command (leave empty for default)",
-          "turn_on_command": "ADB shell turn on command (leave empty for default)"
+          "turn_on_command": "ADB shell turn on command (leave empty for default)",
+          "current_app_media_session_state": "ADB shell command for current app detection"
         }
       },
       "apps": {

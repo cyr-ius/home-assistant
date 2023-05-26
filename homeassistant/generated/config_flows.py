@@ -156,6 +156,7 @@ FLOWS = {
         "garages_amsterdam",
         "gdacs",
         "generic",
+        "generic_thermostat",
         "geo_json_events",
         "geocaching",
         "geofency",

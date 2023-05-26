@@ -175,7 +175,7 @@ class GenericThermostat(ClimateEntity, RestoreEntity):
 
         self.heater_entity_id = entity_config[CONF_HEATER]
         self.sensor_entity_id = entity_config[CONF_SENSOR]
-        self.ac_mode = entity_config[CONF_AC_MODE]
+        self.ac_mode = entity_config.get(CONF_AC_MODE, False)
         self._cold_tolerance = entity_config.get(CONF_COLD_TOLERANCE)
         self._hot_tolerance = entity_config.get(CONF_HOT_TOLERANCE)
         self._keep_alive = (

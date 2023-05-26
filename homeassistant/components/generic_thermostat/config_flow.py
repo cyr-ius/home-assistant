@@ -92,13 +92,13 @@ DATA_SCHEMA = vol.Schema(
             NumberSelectorConfig(mode=NumberSelectorMode.BOX, step=0.1)
         ),
         vol.Required(CONF_AC_MODE, default=False): BooleanSelector(),
-        vol.Optional(CONF_MIN_DUR): TimeSelector(),
         vol.Required(CONF_COLD_TOLERANCE, default=DEFAULT_TOLERANCE): NumberSelector(
             NumberSelectorConfig(mode=NumberSelectorMode.BOX, step=0.1)
         ),
         vol.Required(CONF_HOT_TOLERANCE, default=DEFAULT_TOLERANCE): NumberSelector(
             NumberSelectorConfig(mode=NumberSelectorMode.BOX, step=0.1)
         ),
+        vol.Optional(CONF_MIN_DUR): TimeSelector(),
         vol.Optional(CONF_TARGET_TEMP): NumberSelector(
             NumberSelectorConfig(mode=NumberSelectorMode.BOX, step=0.1)
         ),
@@ -146,6 +146,7 @@ class GenericThermostatConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_import(self, config: dict[str, Any]) -> FlowResult:
         """Import a config entry from configuration.yaml."""
+        self._async_abort_entries_match({CONF_NAME: config[CONF_NAME]})
         if keep_alive := config.get(CONF_KEEP_ALIVE):
             config[CONF_KEEP_ALIVE] = str(
                 datetime.strptime(str(keep_alive), "%H:%M:%S").time()

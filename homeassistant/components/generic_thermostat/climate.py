@@ -67,6 +67,8 @@ from .const import (
     CONF_SENSOR,
     CONF_TARGET_TEMP,
     CONF_TEMP_STEP,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_MIN_TEMP,
     DEFAULT_NAME,
     DEFAULT_TOLERANCE,
     DOMAIN,
@@ -196,8 +198,8 @@ class GenericThermostat(ClimateEntity, RestoreEntity):
         self._attr_unique_id = entity_config.get(CONF_UNIQUE_ID, entry.entry_id)
         self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
         self._attr_current_temperature = None
-        self._attr_min_temp: float = entity_config[CONF_MIN_TEMP]
-        self._attr_max_temp: float = entity_config[CONF_MAX_TEMP]
+        self._attr_min_temp: float = entity_config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
+        self._attr_max_temp: float = entity_config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
         self._attr_target_temperature_step = float(
             entity_config.get(CONF_TEMP_STEP, 0.5)
         )

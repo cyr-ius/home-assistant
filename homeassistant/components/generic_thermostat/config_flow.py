@@ -174,13 +174,12 @@ class GenericThermostatConfigFlow(ConfigFlow, domain=DOMAIN):
                 options=user_input,
             )
 
-        user_input = {}
-
-        data_schema = DATA_SCHEMA.extend(
-            {vol.Optional(CONF_NAME, default=DEFAULT_NAME): TextSelector()}
+        return self.async_show_form(
+            step_id="user",
+            data_schema=DATA_SCHEMA.extend(
+                {vol.Optional(CONF_NAME, default=DEFAULT_NAME): TextSelector()}
+            ),
         )
-
-        return self.async_show_form(step_id="user", data_schema=data_schema)
 
 
 class GenericThermostatOptionsFlowHandler(OptionsFlowWithConfigEntry):

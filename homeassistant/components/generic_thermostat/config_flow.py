@@ -109,7 +109,7 @@ DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_PRECISION): SelectSelector(
             SelectSelectorConfig(options=PRECISION, mode=SelectSelectorMode.DROPDOWN)
         ),
-        vol.Optional(CONF_TEMP_STEP): SelectSelector(
+        vol.Optional(CONF_TEMP_STEP, default=str(PRECISION_TENTHS)): SelectSelector(
             SelectSelectorConfig(options=PRECISION, mode=SelectSelectorMode.DROPDOWN)
         ),
         vol.Optional(f"{PRESET_AWAY}_temp"): NumberSelector(

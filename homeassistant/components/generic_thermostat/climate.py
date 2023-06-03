@@ -201,7 +201,7 @@ class GenericThermostat(ClimateEntity, RestoreEntity):
         self._attr_min_temp: float = entity_config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
         self._attr_max_temp: float = entity_config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
         self._attr_target_temperature_step = float(
-            entity_config.get(CONF_TEMP_STEP, 0.5)
+            entity_config.get(CONF_TEMP_STEP, PRECISION_TENTHS)
         )
         self._attr_target_temperature = entity_config.get(CONF_TARGET_TEMP)
         self._attr_precision = float(entity_config.get(CONF_PRECISION, 0.5))

@@ -145,7 +145,21 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
 
     async def async_turn_auto(self) -> None:
         """Turn device to Program mode."""
-        raise NotImplementedError()
+        # For PROGRAM Mode we have to set TIMER_SWITCH = 1, but we also ensure VACATION Mode is OFF
+        try:
+            await self.coordinator.api.async_control_device(
+                self.unique_id,
+                {
+                    CONF_ATTRS: {
+                        CONF_TIMER_SWITCH: 1,
+                        CONF_DEROG_MODE: 0,
+                        CONF_DEROG_TIME: 0,
+                    }
+                },
+            )
+            await self.coordinator.async_request_refresh()
+        except HeatzyException as error:
+            _LOGGER.error("Error to turn off : %s (%s)", self.name, error)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new hvac mode."""
@@ -191,24 +205,6 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Set preset mode (%s) %s (%s)", preset_mode, self.name, error)
-
-    async def async_turn_auto(self) -> None:
-        """Turn device to Program mode."""
-        # For PROGRAM Mode we have to set TIMER_SWITCH = 1, but we also ensure VACATION Mode is OFF
-        try:
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {
-                    "raw": {
-                        CONF_TIMER_SWITCH: 1,
-                        CONF_DEROG_MODE: 0,
-                        CONF_DEROG_TIME: 0,
-                    }
-                },
-            )
-            await self.coordinator.async_request_refresh()
-        except HeatzyException as error:
-            _LOGGER.error("Error to turn off : %s (%s)", self.name, error)
 
 
 class HeatzyPiloteV2Thermostat(HeatzyThermostat):
@@ -270,24 +266,6 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error Turn on %s (%s)", self.name, error)
-
-    async def async_turn_auto(self) -> None:
-        """Turn device to Program mode."""
-        # For PROGRAM Mode we have to set TIMER_SWITCH = 1, but we also ensure VACATION Mode is OFF
-        try:
-            await self.coordinator.api.async_control_device(
-                self.unique_id,
-                {
-                    CONF_ATTRS: {
-                        CONF_TIMER_SWITCH: 1,
-                        CONF_DEROG_MODE: 0,
-                        CONF_DEROG_TIME: 0,
-                    }
-                },
-            )
-            await self.coordinator.async_request_refresh()
-        except HeatzyException as error:
-            _LOGGER.error("Error to turn off : %s (%s)", self.name, error)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""

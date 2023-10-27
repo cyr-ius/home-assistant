@@ -86,8 +86,8 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
     HEATZY_TO_HA_STATE: dict[int | str, str] = {}
     HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {}
 
-    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
-    _attr_preset_modes = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
+    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF, HVACMode.AUTO]
+    _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
     _attr_supported_features = ClimateEntityFeature.PRESET_MODE
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_has_entity_name = True

@@ -166,13 +166,13 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
 class HeatzyPiloteV1Thermostat(HeatzyThermostat):
     """Heaty Pilote v1."""
 
-    HEATZY_TO_HA_STATE: dict[int | str, str] = {
+    HEATZY_TO_HA_STATE = {
         "\u8212\u9002": PRESET_COMFORT,
         "\u7ecf\u6d4e": PRESET_ECO,
         "\u89e3\u51bb": PRESET_AWAY,
         "\u505c\u6b62": PRESET_NONE,
     }
-    HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {
+    HA_TO_HEATZY_STATE = {
         PRESET_COMFORT: [1, 1, 0],
         PRESET_ECO: [1, 1, 1],
         PRESET_AWAY: [1, 1, 2],
@@ -214,15 +214,8 @@ class HeatzyPiloteV1Thermostat(HeatzyThermostat):
 class HeatzyPiloteV2Thermostat(HeatzyThermostat):
     """Heaty Pilote v2."""
 
-    HEATZY_TO_HA_STATE: dict[int | str, str] = {
-        "cft": PRESET_COMFORT,
-        "eco": PRESET_ECO,
-        "fro": PRESET_AWAY,
-        "stop": PRESET_NONE,
-    }
-    HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {
-        preset: name for (name, preset) in HEATZY_TO_HA_STATE.items()
-    }
+    HEATZY_TO_HA_STATE = {"cft": PRESET_COMFORT, "eco": PRESET_ECO, "fro": PRESET_AWAY}
+    HA_TO_HEATZY_STATE = {preset: name for (name, preset) in HEATZY_TO_HA_STATE.items()}
     HEATZY_STOP = "stop"
 
     async def async_turn_on(self) -> None:
@@ -316,17 +309,8 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
     # DEROG_MODE = 1 is PROGRAM Mode
     # DEROG_MODE = 2 is VACATION Mode
-    HEATZY_TO_HA_STATE: dict[int | str, str] = {
-        0: PRESET_COMFORT,
-        1: PRESET_ECO,
-        2: PRESET_AWAY,
-    }
-
-    HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {
-        PRESET_COMFORT: "cft",
-        PRESET_ECO: "eco",
-        PRESET_AWAY: "fro",
-    }
+    HEATZY_TO_HA_STATE = {0: PRESET_COMFORT, 1: PRESET_ECO, 2: PRESET_AWAY}
+    HA_TO_HEATZY_STATE = {PRESET_COMFORT: "cft", PRESET_ECO: "eco", PRESET_AWAY: "fro"}
 
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE

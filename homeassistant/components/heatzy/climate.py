@@ -262,7 +262,6 @@ class HeatzyPiloteV2Thermostat(HeatzyThermostat):
                 self.unique_id,
                 {CONF_ATTRS: {CONF_MODE: self.HEATZY_STOP}},
             )
-            _LOGGER.debug("Turn off %s", self.HEATZY_STOP)
             await self.coordinator.async_request_refresh()
         except HeatzyException as error:
             _LOGGER.error("Error Turn on %s (%s)", self.name, error)

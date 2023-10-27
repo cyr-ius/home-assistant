@@ -1,22 +1,22 @@
 {
     "config": {
-        "flow_title": "{name}",
-        "step": {
-            "user": {
-                "title": "Enter your Heatzy account credentials.",
-                "data": {
-                    "username": "Username",
-                    "password": "Password"
-                }
-            }
+        "abort": {
+            "already_configured": "Service is already configured"
         },
         "error": {
             "cannot_connect": "Failed to connect",
             "invalid_auth": "Invalid authentication",
             "unknown": "Unexpected error"
         },
-        "abort": {
-            "already_configured": "Your account is already configured."
+        "flow_title": "{name}",
+        "step": {
+            "user": {
+                "data": {
+                    "password": "[%key:common::config_flow::data::password]",
+                    "username": "[%key:common::config_flow::data::email]"
+                },
+                "title": "Register your heatzy account"
+            }
         }
     }
 }

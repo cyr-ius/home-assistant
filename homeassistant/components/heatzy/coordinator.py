@@ -1,10 +1,10 @@
 """Heatzy platform coordinator."""
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 
-import async_timeout
 from heatzypy import HeatzyClient
 from heatzypy.exception import AuthenticationFailed, HeatzyException
 
@@ -45,7 +45,7 @@ class HeatzyDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Update data."""
         try:
-            async with async_timeout.timeout(API_TIMEOUT):
+            async with asyncio.timeout(API_TIMEOUT):
                 return await self.api.async_get_devices()
         except AuthenticationFailed as error:
             raise ConfigEntryAuthFailed() from error

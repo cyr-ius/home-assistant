@@ -5,7 +5,7 @@ import asyncio
 import logging
 from typing import Any
 
-from heatzypy.exception import HeatzyException  # type: ignore[import]
+from heatzypy.exception import HeatzyException  # type: ignore[import-untyped]
 
 from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH,
@@ -83,6 +83,8 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
     """Heatzy climate."""
 
     HEATZY_STOP: int | str | None = None
+    HEATZY_TO_HA_STATE: dict[int | str, str] = {}
+    HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {}
 
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
     _attr_preset_modes = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY]
@@ -95,7 +97,7 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
         self, coordinator: HeatzyDataUpdateCoordinator, unique_id: str
     ) -> None:
         """Init."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, unique_id)
         self._attr_unique_id = unique_id
         self._attr_name = coordinator.data[unique_id][CONF_ALIAS]
         self._attr_device_info = DeviceInfo(
@@ -127,6 +129,11 @@ class HeatzyThermostat(CoordinatorEntity[HeatzyDataUpdateCoordinator], ClimateEn
             return HVACMode.OFF
         # otherwise set HVAC Mode to HEAT
         return HVACMode.HEAT
+
+    @property
+    def preset_mode(self) -> str | None:
+        """Return the current preset mode, e.g., home, away, temp."""
+        return self.HEATZY_TO_HA_STATE.get(self._attr.get(CONF_MODE))
 
     async def async_turn_on(self) -> None:
         """Turn device on."""
@@ -309,20 +316,17 @@ class Glowv1Thermostat(HeatzyPiloteV2Thermostat):
 
     # DEROG_MODE = 1 is PROGRAM Mode
     # DEROG_MODE = 2 is VACATION Mode
-
-    # spell-checker:disable
-    HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {
-        PRESET_COMFORT: "cft",
-        PRESET_ECO: "eco",
-        PRESET_AWAY: "fro",
-    }
-
     HEATZY_TO_HA_STATE: dict[int | str, str] = {
         0: PRESET_COMFORT,
         1: PRESET_ECO,
         2: PRESET_AWAY,
     }
-    # spell-checker:enable
+
+    HA_TO_HEATZY_STATE: dict[int | str, str | int | list[int]] = {
+        PRESET_COMFORT: "cft",
+        PRESET_ECO: "eco",
+        PRESET_AWAY: "fro",
+    }
 
     _attr_supported_features = (
         ClimateEntityFeature.PRESET_MODE

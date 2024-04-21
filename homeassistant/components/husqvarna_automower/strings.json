@@ -46,12 +46,7 @@
       "cutting_height": {
         "name": "Cutting height"
       },
-      "my_lawn_cutting_height": {
-        "name": "My lawn cutting height "
-      },
-      "work_area_cutting_height": {
-        "name": "{work_area} cutting height"
-      }
+      "duration": { "name": "Duration" }
     },
     "select": {
       "headlight_mode": {

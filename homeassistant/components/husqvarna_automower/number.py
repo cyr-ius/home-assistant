@@ -1,4 +1,4 @@
-"""Creates the number entities for the mower."""
+"""Creates a number entity for the duration of the mower."""
 
 import asyncio
 from collections.abc import Awaitable, Callable
@@ -16,10 +16,15 @@ from homeassistant.const import PERCENTAGE, EntityCategory, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.components.number import NumberEntity, NumberEntityDescription
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory, UnitOfTime
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, EXECUTION_TIME_DELAY
 from .coordinator import AutomowerDataUpdateCoordinator
+from .entity import AutomowerBaseEntity
 from .entity import AutomowerControlEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -107,6 +112,18 @@ WORK_AREA_NUMBER_TYPES: tuple[AutomowerWorkAreaNumberEntityDescription, ...] = (
         value_fn=lambda data: data.cutting_height,
         set_value_fn=async_set_work_area_cutting_height,
     ),
+        set_value_fn=lambda session, mower_id, cheight: session.set_cutting_height(
+            mower_id, int(cheight)
+        ),
+    AutomowerNumberEntityDescription(
+        key="duration",
+        translation_key="duration",
+        native_step=1,
+        native_min_value=30,
+        native_max_value=10080,
+        entity_category=EntityCategory.CONFIG,
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+    )
 )
 
 

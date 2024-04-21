@@ -87,7 +87,10 @@ class AutomowerScheduleSwitchEntity(AutomowerControlEntity, SwitchEntity):
         attributes = self.mower_attributes
         return not (
             attributes.mower.state == MowerStates.RESTRICTED
-            and attributes.planner.restricted_reason == RestrictedReasons.NOT_APPLICABLE
+            and (
+                attributes.planner.restricted_reason
+                in [RestrictedReasons.NOT_APPLICABLE, RestrictedReasons.WEEK_SCHEDULE]
+            )
         )
 
     @property

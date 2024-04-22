@@ -46,7 +46,7 @@
       "cutting_height": {
         "name": "Cutting height"
       },
-      "duration": { "name": "Duration" }
+      "start_duration": { "name": "Mower Duration" }
     },
     "select": {
       "headlight_mode": {
@@ -56,6 +56,13 @@
           "always_off": "Always off",
           "evening_only": "Evening only",
           "evening_and_night": "Evening and night"
+        }
+      },
+      "park_mode": {
+        "name": "Park mode",
+        "state": {
+          "next_schedule": "Next schedule",
+          "further_notice": "Always"
         }
       }
     },

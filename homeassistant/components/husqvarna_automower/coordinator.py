@@ -38,7 +38,7 @@ class AutomowerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, MowerAttrib
             update_interval=SCAN_INTERVAL,
         )
         self.api = api
-
+        self.has_scheduled = True
         self.ws_connected: bool = False
 
     async def _async_update_data(self) -> dict[str, MowerAttributes]:

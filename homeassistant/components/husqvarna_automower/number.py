@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.components.number import NumberEntity, NumberEntityDescription
+from homeassistant.components.number import NumberEntityDescription, RestoreNumber
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
@@ -115,9 +116,9 @@ WORK_AREA_NUMBER_TYPES: tuple[AutomowerWorkAreaNumberEntityDescription, ...] = (
         set_value_fn=lambda session, mower_id, cheight: session.set_cutting_height(
             mower_id, int(cheight)
         ),
-    AutomowerNumberEntityDescription(
-        key="duration",
-        translation_key="duration",
+    NumberEntityDescription(
+        key="start_duration",
+        translation_key="start_duration",
         native_step=1,
         native_min_value=30,
         native_max_value=10080,

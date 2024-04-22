@@ -72,6 +72,11 @@ class AutomowerLawnMowerEntity(AutomowerControlEntity, LawnMowerEntity):
         mower_attributes = self.mower_attributes
         if mower_attributes.mower.state in PAUSED_STATES:
             return LawnMowerActivity.PAUSED
+        if (
+            mower_attributes.mower.state == MowerStates.IN_OPERATION
+            and mower_attributes.mower.activity == MowerActivities.NOT_APPLICABLE
+        ):
+            return f"{LawnMowerActivity.PAUSED} (sat. tracking)"  # type: ignore[return-value]
         if mower_attributes.mower.activity in MOWING_ACTIVITIES:
             return LawnMowerActivity.MOWING
         if (mower_attributes.mower.state == "RESTRICTED") or (
@@ -83,7 +88,12 @@ class AutomowerLawnMowerEntity(AutomowerControlEntity, LawnMowerEntity):
     async def async_start_mowing(self) -> None:
         """Resume schedule."""
         try:
-            await self.coordinator.api.commands.resume_schedule(self.mower_id)
+            if (
+                duration := self.coordinator.start_duration
+            ) and self.coordinator.has_scheduled is False:
+                await self.coordinator.api.start_for(self.mower_id, duration)
+            else:
+                await self.coordinator.api.resume_schedule(self.mower_id)
         except ApiException as exception:
             raise HomeAssistantError(
                 f"Command couldn't be sent to the command queue: {exception}"
@@ -101,7 +111,10 @@ class AutomowerLawnMowerEntity(AutomowerControlEntity, LawnMowerEntity):
     async def async_dock(self) -> None:
         """Parks the mower until next schedule."""
         try:
-            await self.coordinator.api.commands.park_until_next_schedule(self.mower_id)
+            if self.coordinator.has_scheduled is False:
+                await self.coordinator.api.park_until_further_notice(self.mower_id)
+            else:
+                await self.coordinator.api.park_until_next_schedule(self.mower_id)
         except ApiException as exception:
             raise HomeAssistantError(
                 f"Command couldn't be sent to the command queue: {exception}"

@@ -102,25 +102,20 @@ class AutomowerCalendarEntity(AutomowerBaseEntity, CalendarEntity):
                     and (work_area_id := task.work_area_id)
                     and isinstance(self.mower_attributes.work_areas, dict)
                 ):
-                    dt_start: datetime = start_date + timedelta(minutes=task.start)
-                    dt_end: datetime = start_date + timedelta(
-                        minutes=task.start + task.duration
-                    )
-
-                    wa = self.mower_attributes.work_areas[work_area_id]
-                    work_area = wa.name
-                    cutting_height = wa.cutting_height
-                    uid = f"{i}#{task.work_area_id}#{str_day}"
-
                     period.append(
                         {
                             "day": start_date,
-                            "start": dt_start,
-                            "end": dt_end,
+                            "start": start_date + timedelta(minutes=task.start),
+                            "end": start_date
+                            + timedelta(minutes=task.start + task.duration),
                             "work_area_id": work_area_id,
-                            "work_area": work_area,
-                            "cutting_height": cutting_height,
-                            "uid": uid,
+                            "work_area": self.mower_attributes.work_areas[
+                                work_area_id
+                            ].name,
+                            "cutting_height": self.mower_attributes.work_areas[
+                                work_area_id
+                            ].cutting_height,
+                            "uid": f"{i}#{task.work_area_id}#{str_day}",
                         }
                     )
             start_date = start_date + timedelta(days=1)

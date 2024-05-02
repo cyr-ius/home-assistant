@@ -95,7 +95,7 @@ class AutomowerCalendarEntity(AutomowerBaseEntity, CalendarEntity):
         attrs = self.mower_attributes
         for i, task in enumerate(attrs.calendar.tasks):
             work_area_id = int(task.work_area_id) if task.work_area_id else 0
-            if getattr(attrs, "work_areas") and isinstance(attrs.work_areas, dict):
+            if isinstance(attrs.work_areas, dict):
                 attrs_tsk = attrs.work_areas[work_area_id]
                 period: list[dict[str, Any]] = []
                 while start_date.date() < save_dt + timedelta(days=interval):

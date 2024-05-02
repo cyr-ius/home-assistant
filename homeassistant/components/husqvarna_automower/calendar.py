@@ -94,30 +94,39 @@ class AutomowerCalendarEntity(AutomowerBaseEntity, CalendarEntity):
         save_dt = start_date.date()
         attrs = self.mower_attributes
         for i, task in enumerate(attrs.calendar.tasks):
-            work_area_id = int(task.work_area_id) if task.work_area_id else 0
-            if isinstance(attrs.work_areas, dict):
-                attrs_tsk = attrs.work_areas[work_area_id]
-                period: list[dict[str, Any]] = []
-                while start_date.date() < save_dt + timedelta(days=interval):
-                    str_day = start_date.strftime("%A").lower()
-                    if getattr(task, str_day) is True:
-                        dt_start: datetime = start_date + timedelta(minutes=task.start)
-                        dt_end: datetime = start_date + timedelta(
-                            minutes=task.start + task.duration
-                        )
-                        period.append(
-                            {
-                                "day": start_date,
-                                "start": dt_start,
-                                "end": dt_end,
-                                "work_area_id": work_area_id,
-                                "work_area": attrs_tsk.name,
-                                "cutting_height": attrs_tsk.cutting_height,
-                                "uid": f"{i}#{work_area_id}#{str_day}",
-                            }
-                        )
-                    start_date = start_date + timedelta(days=1)
-                periods.append(period)
+            period: list[dict[str, Any]] = []
+            while start_date.date() < save_dt + timedelta(days=interval):
+                str_day = start_date.strftime("%A").lower()
+                if getattr(task, str_day) is True:
+                    dt_start: datetime = start_date + timedelta(minutes=task.start)
+                    dt_end: datetime = start_date + timedelta(
+                        minutes=task.start + task.duration
+                    )
+
+                    uid = f"{i}#0#{str_day}"
+                    work_area = "Main"
+                    cutting_height: int | None = None
+                    if (work_area_id := task.work_area_id) and isinstance(
+                        self.mower_attributes.work_areas, dict
+                    ):
+                        wa = self.mower_attributes.work_areas[work_area_id]
+                        work_area = wa.name
+                        cutting_height = wa.cutting_height
+                        uid = f"{i}#{task.work_area_id}#{str_day}"
+
+                    period.append(
+                        {
+                            "day": start_date,
+                            "start": dt_start,
+                            "end": dt_end,
+                            "work_area_id": work_area_id,
+                            "work_area": work_area,
+                            "cutting_height": cutting_height,
+                            "uid": uid,
+                        }
+                    )
+                start_date = start_date + timedelta(days=1)
+            periods.append(period)
         return periods
 
     async def async_update_event(

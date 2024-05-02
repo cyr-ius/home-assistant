@@ -97,22 +97,20 @@ class AutomowerCalendarEntity(AutomowerBaseEntity, CalendarEntity):
             period: list[dict[str, Any]] = []
             while start_date.date() < save_dt + timedelta(days=interval):
                 str_day = start_date.strftime("%A").lower()
-                if getattr(task, str_day) is True:
+                if (
+                    getattr(task, str_day) is True
+                    and (work_area_id := task.work_area_id)
+                    and isinstance(self.mower_attributes.work_areas, dict)
+                ):
                     dt_start: datetime = start_date + timedelta(minutes=task.start)
                     dt_end: datetime = start_date + timedelta(
                         minutes=task.start + task.duration
                     )
 
-                    uid = f"{i}#0#{str_day}"
-                    work_area = "Main"
-                    cutting_height: int | None = None
-                    if (work_area_id := task.work_area_id) and isinstance(
-                        self.mower_attributes.work_areas, dict
-                    ):
-                        wa = self.mower_attributes.work_areas[work_area_id]
-                        work_area = wa.name
-                        cutting_height = wa.cutting_height
-                        uid = f"{i}#{task.work_area_id}#{str_day}"
+                    wa = self.mower_attributes.work_areas[work_area_id]
+                    work_area = wa.name
+                    cutting_height = wa.cutting_height
+                    uid = f"{i}#{task.work_area_id}#{str_day}"
 
                     period.append(
                         {
@@ -125,7 +123,7 @@ class AutomowerCalendarEntity(AutomowerBaseEntity, CalendarEntity):
                             "uid": uid,
                         }
                     )
-                start_date = start_date + timedelta(days=1)
+            start_date = start_date + timedelta(days=1)
             periods.append(period)
         return periods
 

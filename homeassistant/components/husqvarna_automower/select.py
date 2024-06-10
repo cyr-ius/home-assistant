@@ -8,11 +8,10 @@ from aioautomower.model import HeadlightModes
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, EntityCategory
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN
 from .coordinator import AutomowerDataUpdateCoordinator
@@ -34,18 +33,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up select platform."""
     coordinator: AutomowerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[AutomowerSelectEntity | ParkModeSelectEntity] = [
+    entities: list[AutomowerSelectEntity] = [
         AutomowerSelectEntity(mower_id, coordinator)
         for mower_id in coordinator.data
         if coordinator.data[mower_id].capabilities.headlights
     ]
-
-    parkmode = [
-        ParkModeSelectEntity(mower_id, coordinator) for mower_id in coordinator.data
-    ]
-
-    entities.extend(parkmode)
-
     async_add_entities(entities)
 
 
@@ -82,38 +74,3 @@ class AutomowerSelectEntity(AutomowerControlEntity, SelectEntity):
             raise HomeAssistantError(
                 f"Command couldn't be sent to the command queue: {exception}"
             ) from exception
-
-
-class ParkModeSelectEntity(AutomowerControlEntity, SelectEntity, RestoreEntity):
-    """Defining the headlight mode entity."""
-
-    _attr_options = ["next_schedule", "further_notice"]
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_translation_key = "park_mode"
-    _attr_should_poll = False
-    _attr_name = "Park Mode"
-
-    def __init__(
-        self,
-        mower_id: str,
-        coordinator: AutomowerDataUpdateCoordinator,
-    ) -> None:
-        """Set up select platform."""
-        super().__init__(mower_id, coordinator)
-        self._attr_unique_id = f"{mower_id}_park_mode"
-
-    async def async_select_option(self, option: str) -> None:
-        """Change the selected option."""
-        self._attr_current_option = option
-        self.coordinator.has_scheduled = option == "next_schedule"
-        self.async_write_ha_state()
-
-    async def async_added_to_hass(self) -> None:
-        """Load the last known state when added to hass."""
-        await super().async_added_to_hass()
-        if (
-            last_state := await self.async_get_last_state()
-        ) and last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-            self._attr_current_option = last_state.state
-        else:
-            self._attr_current_option = "next_schedule"

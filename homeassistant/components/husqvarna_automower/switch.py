@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from aioautomower.exceptions import ApiException
 from aioautomower.model import (
     MowerActivities,
+    MowerModes,
     MowerStates,
     RestrictedReasons,
     StayOutZones,
@@ -85,20 +86,21 @@ class AutomowerScheduleSwitchEntity(AutomowerControlEntity, SwitchEntity):
     def is_on(self) -> bool:
         """Return the state of the switch."""
         attributes = self.mower_attributes
-        return not (
-            attributes.mower.state == MowerStates.RESTRICTED
-            and (
-                attributes.planner.restricted_reason
-                in [RestrictedReasons.NOT_APPLICABLE, RestrictedReasons.WEEK_SCHEDULE]
-            )
+
+        self.coordinator.has_scheduled = (
+            attributes.planner.restricted_reason == RestrictedReasons.WEEK_SCHEDULE
+            and attributes.mower.mode != MowerModes.HOME
         )
+
+        return self.coordinator.has_scheduled
 
     @property
     def available(self) -> bool:
         """Return True if the device is available."""
+        attributes = self.mower_attributes
         return super().available and (
-            self.mower_attributes.mower.state not in ERROR_STATES
-            or self.mower_attributes.mower.activity not in ERROR_ACTIVITIES
+            attributes.mower.activity
+            in [MowerActivities.PARKED_IN_CS, MowerActivities.CHARGING]
         )
 
     async def async_turn_off(self, **kwargs: Any) -> None:

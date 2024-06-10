@@ -41,14 +41,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session,
     )
     automower_api = AutomowerSession(api_api)
+
     try:
         await api_api.async_get_access_token()
     except ClientResponseError as err:
         if 400 <= err.status < 500:
             raise ConfigEntryAuthFailed from err
         raise ConfigEntryNotReady from err
+
     coordinator = AutomowerDataUpdateCoordinator(hass, automower_api, entry)
     await coordinator.async_config_entry_first_refresh()
+
     entry.async_create_background_task(
         hass,
         coordinator.client_listen(hass, entry, automower_api),

@@ -10,22 +10,27 @@ from aioautomower.exceptions import ApiException
 from aioautomower.model import MowerAttributes, WorkArea
 from aioautomower.session import AutomowerSession
 
-from homeassistant.components.number import NumberEntity, NumberEntityDescription
+from homeassistant.components.number import (
+    NumberEntity,
+    NumberEntityDescription,
+    RestoreNumber,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, EntityCategory, Platform
+from homeassistant.const import (
+    PERCENTAGE,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+    EntityCategory,
+    Platform,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
-from homeassistant.components.number import NumberEntity, NumberEntityDescription
-from homeassistant.components.number import NumberEntityDescription, RestoreNumber
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, UnitOfTime
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, EXECUTION_TIME_DELAY
 from .coordinator import AutomowerDataUpdateCoordinator
-from .entity import AutomowerBaseEntity
 from .entity import AutomowerControlEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -111,11 +116,13 @@ WORK_AREA_NUMBER_TYPES: tuple[AutomowerWorkAreaNumberEntityDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         native_unit_of_measurement=PERCENTAGE,
         value_fn=lambda data: data.cutting_height,
-        set_value_fn=async_set_work_area_cutting_height,
-    ),
         set_value_fn=lambda session, mower_id, cheight: session.set_cutting_height(
             mower_id, int(cheight)
         ),
+    ),
+)
+
+OTHER_TYPES: tuple[NumberEntityDescription] = (
     NumberEntityDescription(
         key="start_duration",
         translation_key="start_duration",
@@ -124,7 +131,7 @@ WORK_AREA_NUMBER_TYPES: tuple[AutomowerWorkAreaNumberEntityDescription, ...] = (
         native_max_value=10080,
         entity_category=EntityCategory.CONFIG,
         native_unit_of_measurement=UnitOfTime.MINUTES,
-    )
+    ),
 )
 
 
@@ -133,7 +140,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up number platform."""
     coordinator: AutomowerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[NumberEntity] = []
+    entities: list[NumberEntity | RestoreNumber] = []
 
     for mower_id in coordinator.data:
         if coordinator.data[mower_id].capabilities.work_areas:
@@ -151,6 +158,10 @@ async def async_setup_entry(
             AutomowerNumberEntity(mower_id, coordinator, description)
             for description in NUMBER_TYPES
             if description.exists_fn(coordinator.data[mower_id])
+        )
+        entities.extend(
+            OtherNumberEntity(mower_id, coordinator, description)
+            for description in OTHER_TYPES
         )
     async_add_entities(entities)
 
@@ -186,6 +197,41 @@ class AutomowerNumberEntity(AutomowerControlEntity, NumberEntity):
             raise HomeAssistantError(
                 f"Command couldn't be sent to the command queue: {exception}"
             ) from exception
+
+
+class OtherNumberEntity(AutomowerControlEntity, RestoreNumber):
+    """Defining the AutomowerNumberEntity with NumberEntityDescription."""
+
+    entity_description: NumberEntityDescription
+
+    def __init__(
+        self,
+        mower_id: str,
+        coordinator: AutomowerDataUpdateCoordinator,
+        description: NumberEntityDescription,
+    ) -> None:
+        """Set up AutomowerNumberEntity."""
+        super().__init__(mower_id, coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{mower_id}_{description.key}"
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Update the current value."""
+        self._attr_native_value = self.coordinator.start_duration = value
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last state."""
+        await super().async_added_to_hass()
+        if (
+            (last_state := await self.async_get_last_state())
+            and last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+            and (last_number_data := await self.async_get_last_number_data())
+            and last_number_data.native_value
+        ):
+            self._attr_native_value = self.coordinator.start_duration = (
+                last_number_data.native_value
+            )
 
 
 class AutomowerWorkAreaNumberEntity(AutomowerControlEntity, NumberEntity):

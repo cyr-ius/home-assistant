@@ -127,10 +127,19 @@ class FTPDriveBackupAgent(BackupAgent):
 
         async def stream_chunks() -> AsyncIterator[bytes]:
             try:
-                async for chunk in stream.iter_by_block():
+                while True:
+                    chunk: bytes = await stream.read(65536)
+                    if not chunk:
+                        break
                     yield chunk
+            except GeneratorExit:
+                pass
             finally:
-                await self._ftp.async_close()
+                try:
+                    await stream.finish()
+                    await self._ftp.async_close()
+                except AIOFTPException:
+                    pass
 
         return stream_chunks()
 

@@ -208,6 +208,7 @@ homeassistant.components.fritzbox.*
 homeassistant.components.fritzbox_callmonitor.*
 homeassistant.components.fronius.*
 homeassistant.components.frontend.*
+homeassistant.components.ftp_client.*
 homeassistant.components.fujitsu_fglair.*
 homeassistant.components.fully_kiosk.*
 homeassistant.components.fyta.*

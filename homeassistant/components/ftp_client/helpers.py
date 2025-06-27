@@ -61,47 +61,6 @@ class FTPClient:
                 return False
         return True
 
-    # async def _connect(self) -> None:
-    #     await self.client.connect(self.host)
-    #     await self.client.login(self._username, self._password)
-    #     _LOGGER.info("FTP connected")
-
-    # async def _ensure_connection(self) -> None:
-    #     if self.client is None or self.client.stream is None:
-    #         _LOGGER.warning("FTP not connected, reconnecting")
-    #         try:
-    #             await self._connect()
-    #         except Exception as e:
-    #             _LOGGER.error("Reconnection failed: %s", e)
-    #             raise
-
-    # @asynccontextmanager
-    # async def connect(self) -> AsyncIterator[FTPClient]:
-    #     """Context manager to ensure FTP connection."""
-    #     await self._connect()
-    #     try:
-    #         yield self
-    #     finally:
-    #         if self.client is not None:
-    #             await self.client.quit()
-    #             self.client = None
-    #             _LOGGER.info("FTP disconnected")
-
-    # async def safe_call(self, func, *args, **kwargs) -> None:
-    #     """Execute a client method with reconnection on failure."""
-    #     await self._ensure_connection()
-
-    #     async with self._lock:
-    #         try:
-    #             return await func(*args, **kwargs)
-    #         except (ConnectionResetError, StatusCodeError, RuntimeError):
-    #             # _LOGGER.warning("Connection lost during operation: %s", e)
-    #             await self._connect()
-    #             return await func(*args, **kwargs)
-    #         except AIOFTPException as e:
-    #             _LOGGER.error("AIOFTPException during operation: %s", e)
-    #             raise CannotConnect from e
-
 
 def json_to_stream(json_str: str, chunk_size: int = 8192) -> AsyncIterator[bytes]:
     """Convert a JSON string into an async iterator of bytes."""

@@ -237,6 +237,9 @@ aioesphomeapi==32.0.0
 # homeassistant.components.flo
 aioflo==2021.11.0
 
+# homeassistant.components.ftp_client
+aioftp==0.25.2
+
 # homeassistant.components.github
 aiogithubapi==24.6.0
 

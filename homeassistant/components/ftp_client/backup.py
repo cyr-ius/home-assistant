@@ -177,7 +177,7 @@ class FTPDriveBackupAgent(BackupAgent):
             async for block in stream_iter:
                 await stream.write(block)
 
-        await self._ftp.client.quit()
+        await self._ftp.async_close()
 
     @handle_backup_errors
     async def async_delete_backup(
@@ -195,7 +195,7 @@ class FTPDriveBackupAgent(BackupAgent):
         await self._ftp.async_connect()
         await self._ftp.client.remove(f"{self._backup_path}/{filename_tar}")
         await self._ftp.client.remove(f"{self._backup_path}/{filename_meta}")
-        await self._ftp.client.quit()
+        await self._ftp.async_close()
 
     @handle_backup_errors
     async def async_list_backups(self, **kwargs: Any) -> list[AgentBackup]:
@@ -204,35 +204,39 @@ class FTPDriveBackupAgent(BackupAgent):
 
     async def _async_list_backups(self, **kwargs: Any) -> dict[str, AgentBackup]:
         """List metadata files with a cache."""
+        async with self._ftp.lock:
+            await self._ftp.async_connect()
 
-        await self._ftp.async_connect()
+            async def _download_metadata(path: str) -> AgentBackup:
+                """Download metadata file."""
 
-        async def _download_metadata(path: str) -> AgentBackup:
-            """Download metadata file."""
+                async with await self._ftp.client.download_stream(path) as stream:
+                    chunks: list[bytes] = []
+                    chunks.extend(
+                        [block async for block in stream.iter_by_block(65536)]
+                    )
 
-            async with await self._ftp.client.download_stream(path) as stream:
-                chunks: list[bytes] = []
-                chunks.extend([block async for block in stream.iter_by_block(65536)])
+                metadata_bytes = b"".join(chunks)
+                metadata = json_loads(metadata_bytes.decode("utf-8"))
+                return AgentBackup.from_dict(metadata)
 
-            metadata_bytes = b"".join(chunks)
-            metadata = json_loads(metadata_bytes.decode("utf-8"))
-            return AgentBackup.from_dict(metadata)
+            async def _list_metadata_files() -> dict[str, AgentBackup]:
+                """List metadata files."""
+                files = await self._ftp.client.list(self._backup_path)
+                metadata_files = {}
+                for posix_path, _ in files:
+                    file_name = str(posix_path)
+                    if file_name.endswith(".metadata.json"):
+                        metadata_content = await _download_metadata(file_name)
+                        if metadata_content:
+                            metadata_files[metadata_content.backup_id] = (
+                                metadata_content
+                            )
+                return metadata_files
 
-        async def _list_metadata_files() -> dict[str, AgentBackup]:
-            """List metadata files."""
-            files = await self._ftp.client.list(self._backup_path)
-            metadata_files = {}
-            for posix_path, _ in files:
-                file_name = str(posix_path)
-                if file_name.endswith(".metadata.json"):
-                    metadata_content = await _download_metadata(file_name)
-                    if metadata_content:
-                        metadata_files[metadata_content.backup_id] = metadata_content
+            metadata_files = await _list_metadata_files()
+            await self._ftp.async_close()
             return metadata_files
-
-        metadata_files = await _list_metadata_files()
-        await self._ftp.client.quit()
-        return metadata_files
 
     @handle_backup_errors
     async def async_get_backup(

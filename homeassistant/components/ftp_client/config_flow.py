@@ -15,7 +15,7 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 
-from .const import CONF_BACKUP_PATH, DEFAULT_BACKUP_PATH, DOMAIN
+from .const import CONF_BACKUP_PATH, DEFAULT_BACKUP_PATH, DEFAULT_SSL, DOMAIN
 from .helpers import CannotConnect, FTPClient, InvalidAuth
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
             )
         ),
         vol.Required(CONF_BACKUP_PATH, default=DEFAULT_BACKUP_PATH): str,
-        vol.Optional(CONF_SSL, default=True): bool,
+        vol.Optional(CONF_SSL, default=DEFAULT_SSL): bool,
     }
 )
 
@@ -49,7 +49,7 @@ class FTPDriveConfigFlow(ConfigFlow, domain=DOMAIN):
                     host=user_input[CONF_HOST],
                     username=user_input[CONF_USERNAME],
                     password=user_input[CONF_PASSWORD],
-                    ssl=user_input.get(CONF_SSL, True),
+                    ssl=user_input[CONF_SSL],
                 )
                 client = await ftp.async_connect()
                 result = await client.list()

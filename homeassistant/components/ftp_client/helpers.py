@@ -33,6 +33,8 @@ class FTPClient:
         """Create a FTP client."""
         try:
             await self.client.connect(self.host)
+            if self._ssl:
+                await self.client.upgrade_to_tls()
             await self.client.login(self._username, self._password)
         except (ConnectionError, TimeoutError, OSError, SSLError) as err:
             raise CannotConnect from err

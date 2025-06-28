@@ -28,7 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: FTPDriveConfigEntry) -> 
         host=entry.data[CONF_HOST],
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
-        ssl=entry.data.get(CONF_SSL, True),
+        ssl=entry.data[CONF_SSL],
     )
 
     try:

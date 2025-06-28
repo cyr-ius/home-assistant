@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
-
-# from contextlib import asynccontextmanager
+import contextlib
 from ssl import SSLError
 
 from aioftp import AIOFTPException, Client, StatusCodeError
 
 from homeassistant.exceptions import HomeAssistantError
-
-# _LOGGER = logging.getLogger(__name__)
 
 
 class FTPClient:
@@ -27,7 +24,7 @@ class FTPClient:
         self._password = password
         self._ssl = ssl
         self.client = Client(ssl=self._ssl)
-        self._lock = asyncio.Lock()
+        self.lock = asyncio.Lock()
 
     async def async_connect(self) -> Client:
         """Create a FTP client."""
@@ -48,11 +45,8 @@ class FTPClient:
 
     async def async_close(self) -> None:
         """Close ftp session."""
-        try:
+        with contextlib.suppress(ConnectionError, TimeoutError):
             await self.client.quit()
-            self.client.close()
-        except (ConnectionError, TimeoutError):
-            pass
 
     async def async_ensure_path_exists(self, path: str) -> bool:
         """Ensure that a path exists recursively on the FTP server."""

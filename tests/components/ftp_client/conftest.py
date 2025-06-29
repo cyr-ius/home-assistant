@@ -95,5 +95,6 @@ def mock_ftp_client(mock_ftp_client_client) -> Generator[AsyncMock]:
         mock.async_ensure_path_exists.return_value = True
         mock.client = mock_ftp_client_client
         mock.async_connect.return_value = mock.client
+        mock.lock = AsyncMock(return_value=None)
 
         yield mock
